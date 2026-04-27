@@ -45,12 +45,14 @@
     isActive = true;
     cardTilt = randTilt();
     buildOverlay();
-    showLoading();
 
     iframe.src = buildTeamsUrl();
 
     iframe.addEventListener('load', async () => {
+      updateProgress('Setting things up...');
       await sleep(4000);
+
+      updateProgress('Finding unread chats...');
 
       try {
         const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
@@ -133,7 +135,7 @@
     root.appendChild(hintLeft);
     root.appendChild(hintRight);
 
-    // Card container
+    // Card container (renders behind progress loader until ready)
     const card = el('div', 'card');
     card.style.setProperty('--tilt', cardTilt + 'deg');
 
@@ -154,6 +156,10 @@
     iframe.style.cssText = 'width:100%;flex:1;border:none;background:#f5f5f5;';
     iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox');
     card.appendChild(iframe);
+
+    // Content mask (hides iframe during card transitions)
+    const cardMask = el('div', 'card-mask');
+    card.appendChild(cardMask);
 
     // Bottom bar (floating below card)
     const isMac = navigator.platform?.includes('Mac') || navigator.userAgent?.includes('Mac');
@@ -182,11 +188,12 @@
     root.appendChild(card);
     root.appendChild(bottomBar);
 
-    // Loading indicator
-    const loadingEl = el('div', 'loading-overlay');
-    loadingEl.appendChild(el('div', 'spinner'));
-    loadingEl.appendChild(txt('div', '', 'Loading Teams...'));
-    root.appendChild(loadingEl);
+    // Progress loader (full-screen, replaces old card-sized loading overlay)
+    const progressEl = el('div', 'progress-loader');
+    progressEl.appendChild(txt('div', 'progress-logo', '✦ nullify'));
+    progressEl.appendChild(el('div', 'spinner'));
+    progressEl.appendChild(txt('div', 'progress-status', 'Connecting to Teams...'));
+    root.appendChild(progressEl);
 
     // Error display
     const errorEl = el('div', 'error-overlay');
@@ -208,16 +215,20 @@
     document.addEventListener('keydown', onKey);
   }
 
-  function showLoading() {
-    const lo = shadow?.querySelector('.loading-overlay');
-    if (lo) lo.style.display = 'flex';
-    const bb = shadow?.querySelector('.bottom-bar');
-    if (bb) bb.style.display = 'none';
+  function updateProgress(text) {
+    const status = shadow?.querySelector('.progress-status');
+    if (status) status.textContent = text;
   }
 
   function showControls() {
-    const lo = shadow?.querySelector('.loading-overlay');
-    if (lo) lo.style.display = 'none';
+    // Fade out progress loader
+    const pl = shadow?.querySelector('.progress-loader');
+    if (pl) {
+      pl.style.transition = 'opacity 0.3s ease';
+      pl.style.opacity = '0';
+      setTimeout(() => { if (pl) pl.style.display = 'none'; }, 300);
+    }
+
     const bb = shadow?.querySelector('.bottom-bar');
     if (bb) bb.style.display = 'flex';
 
@@ -228,7 +239,7 @@
       cnt.appendChild(document.createTextNode(' / ' + cards.length));
     }
 
-    // Entrance animation for first card
+    // Reveal card with entrance animation
     const card = shadow?.querySelector('.card');
     if (card) {
       card.classList.add('card-enter');
@@ -239,8 +250,8 @@
   }
 
   function showError(msg) {
-    const lo = shadow?.querySelector('.loading-overlay');
-    if (lo) lo.style.display = 'none';
+    const pl = shadow?.querySelector('.progress-loader');
+    if (pl) pl.style.display = 'none';
     const er = shadow?.querySelector('.error-overlay');
     if (er) {
       er.style.display = 'flex';
@@ -279,6 +290,16 @@
     if (swiping) return;
     swiping = true;
 
+    const nextIdx = idx + 1;
+    const hasNext = nextIdx < cards.length;
+
+    // Pre-navigate: click next chat immediately + mask iframe content
+    const mask = shadow?.querySelector('.card-mask');
+    if (hasNext) {
+      if (mask) mask.style.opacity = '1';
+      cards[nextIdx].element.click();
+    }
+
     const card = shadow?.querySelector('.card');
     const hintL = shadow?.querySelector('.swipe-label-left');
     const hintR = shadow?.querySelector('.swipe-label-right');
@@ -305,7 +326,7 @@
     if (hintL) { hintL.style.opacity = '0'; hintL.style.transform = 'translate(-50%, -50%) scale(0.8)'; }
     if (hintR) { hintR.style.opacity = '0'; hintR.style.transform = 'translate(-50%, -50%) scale(0.8)'; }
 
-    idx++;
+    idx = nextIdx;
     if (idx >= cards.length) {
       swiping = false;
       showDone();
@@ -315,9 +336,6 @@
     // Update counter
     const b = shadow?.querySelector('.cnt b');
     if (b) b.textContent = idx + 1;
-
-    // Click next unread inside the iframe
-    cards[idx].element.click();
 
     // New tilt for next card
     cardTilt = randTilt();
@@ -338,6 +356,10 @@
     }
 
     await sleep(500);
+
+    // Reveal content (Teams has had ~920ms to render the new chat)
+    if (mask) mask.style.opacity = '0';
+
     swiping = false;
   }
 
@@ -479,6 +501,9 @@
       flex-direction: column;
       background: #fff;
       will-change: transform, opacity;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      -webkit-mask-image: -webkit-radial-gradient(white, black);
     }
 
     /* Entrance animation */
@@ -586,8 +611,53 @@
       .btn-keep { color: #60a5fa; }
     }
 
-    /* ── Loading / Error / Done ── */
-    .loading-overlay, .error-overlay, .done-overlay {
+    /* ── Progress loader (initial load) ── */
+    .progress-loader {
+      position: absolute; inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      z-index: 5;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(20px);
+    }
+    .progress-logo {
+      font-size: 28px; font-weight: 800;
+      color: #fff; letter-spacing: -0.5px;
+    }
+    .progress-status {
+      font-size: 14px;
+      color: rgba(255,255,255,0.45);
+      transition: opacity 0.2s ease;
+    }
+
+    .spinner {
+      width: 28px; height: 28px;
+      border: 2.5px solid rgba(255,255,255,0.08);
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Card content mask (between-card transitions) ── */
+    .card-mask {
+      position: absolute;
+      top: 38px; left: 0; right: 0; bottom: 0;
+      background: #f5f5f5;
+      z-index: 1;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    @media (prefers-color-scheme: dark) {
+      .card-mask { background: #292929; }
+    }
+
+    /* ── Error / Done overlays ── */
+    .error-overlay, .done-overlay {
       position: absolute;
       left: 50%; top: 50%;
       transform: translate(-50%, -50%);
@@ -604,15 +674,6 @@
       background: rgba(22,22,22,0.96);
       z-index: 3;
     }
-
-    .spinner {
-      width: 32px; height: 32px;
-      border: 3px solid rgba(255,255,255,0.08);
-      border-top-color: #6366f1;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
 
     .done-overlay {
       background: rgba(0,0,0,0.88);
