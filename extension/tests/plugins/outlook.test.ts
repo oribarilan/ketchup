@@ -108,4 +108,67 @@ describe('outlook plugin', () => {
     await expect(promise).resolves.toBeUndefined();
     vi.useRealTimers();
   });
+
+  // Regression: after `scrapeUnread` scrolls through the virtualized list, the
+  // first item's row is no longer in the DOM. `openItem` must consult the
+  // per-row scroll snap and scroll the row back into view before clicking,
+  // not just call `resolve` and bail. (Symptom of the bug: card iframe shows
+  // the inbox list and never zooms into a specific email.)
+  it('openItem scrolls back to the saved snap position when the row was virtualized out', async () => {
+    // Synthetic doc with a real `.customScrollBar` scroller so `findScroller`
+    // returns it and `scrapeUnread` exercises the scroll-collect path.
+    const doc = new DOMParser().parseFromString(
+      `<html><body>
+         <div class="customScrollBar">
+           <div role="option" aria-label="Unread Foo Bar 9:00" data-convid="row-foo"></div>
+           <div role="option" aria-label="Unread Baz Qux 9:01" data-convid="row-baz"></div>
+         </div>
+       </body></html>`,
+      'text/html',
+    );
+    const scroller = doc.querySelector<HTMLElement>('.customScrollBar')!;
+    // Make `findScroller` accept this as a real scroller.
+    Object.defineProperty(scroller, 'scrollHeight', { configurable: true, value: 4000 });
+    Object.defineProperty(scroller, 'clientHeight', { configurable: true, value: 600 });
+    let _top = 0;
+    const maxTop = 4000 - 600;
+    Object.defineProperty(scroller, 'scrollTop', {
+      configurable: true,
+      get: () => _top,
+      // Clamp like a real scroller — keeps `scrapeUnread`'s loop terminating.
+      set: (v: number) => {
+        _top = Math.max(0, Math.min(v, maxTop));
+      },
+    });
+
+    const items = await Promise.resolve(outlook.scrapeUnread(doc));
+    expect(items.length).toBeGreaterThan(0);
+    const first = items[0]!;
+
+    // Simulate Outlook virtualizing the row away after scrape, AND the
+    // scroller having drifted to the bottom (this is the production state
+    // — `scrapeUnread` ends with scrollTop near scrollHeight).
+    const row = first.resolve(doc)!;
+    const parent = row.parentElement!;
+    row.remove();
+    _top = maxTop;
+
+    // Re-attach the row when openItem scrolls back near the snap (which was
+    // taken at scrollTop=0). This is what real virtualization does.
+    Object.defineProperty(scroller, 'scrollTop', {
+      configurable: true,
+      get: () => _top,
+      set: (v: number) => {
+        _top = Math.max(0, Math.min(v, maxTop));
+        if (_top < 100 && !parent.contains(row)) parent.appendChild(row);
+      },
+    });
+
+    let clicked = false;
+    row.addEventListener('click', () => (clicked = true));
+
+    await expect(outlook.openItem!(doc, first)).resolves.toBeUndefined();
+    expect(clicked).toBe(true);
+    expect(_top).toBeLessThan(100); // openItem scrolled back to the snap.
+  });
 });

@@ -44,6 +44,13 @@ interface DocState {
   lastScrollPos: number;
   /** All ids ever surfaced for this document — kept for cross-batch dedupe. */
   seen: Set<string>;
+  /**
+   * Per-id snapshot of where each row was when it was scraped. `openItem`
+   * uses this to scroll back to a row that has been virtualized out of the
+   * DOM since scraping (which it always is, because `scrapeUnread` scrolls
+   * the list to the end while collecting batches).
+   */
+  snaps: Map<string, OutlookSnap>;
 }
 
 const docState = new WeakMap<Document, DocState>();
@@ -67,7 +74,7 @@ const outlook: Plugin = {
   async scrapeUnread(doc: Document): Promise<UnreadItem[]> {
     // Reset cross-batch state for this document — a fresh scrape starts a
     // brand new triage session.
-    const state: DocState = { lastScrollPos: 0, seen: new Set() };
+    const state: DocState = { lastScrollPos: 0, seen: new Set(), snaps: new Map() };
     docState.set(doc, state);
     const sc = findScroller(doc);
     if (sc) sc.scrollTop = 0;
@@ -80,7 +87,7 @@ const outlook: Plugin = {
   ): Promise<UnreadItem[]> {
     let state = docState.get(doc);
     if (!state) {
-      state = { lastScrollPos: 0, seen: new Set() };
+      state = { lastScrollPos: 0, seen: new Set(), snaps: new Map() };
       docState.set(doc, state);
     }
     // Merge externally-tracked ids so we don't re-emit anything the queue
@@ -90,8 +97,11 @@ const outlook: Plugin = {
   },
 
   async openItem(doc: Document, item: UnreadItem): Promise<void> {
-    const el = item.resolve(doc);
-    if (!el) throw new ItemDetachedError(item.id);
+    // After `scrapeUnread` scrolls through the list, the row for an early
+    // item is almost always virtualized out of the DOM. Use the saved
+    // per-row scroll position to bring it back before clicking.
+    const snap = docState.get(doc)?.snaps.get(item.id);
+    const el = await ensureRow(doc, item, snap?.scrollPos ?? 0);
     el.click();
   },
 
@@ -153,7 +163,10 @@ async function collectFrom(doc: Document, state: DocState, target: number): Prom
     state.lastScrollPos = sc.scrollTop;
   }
 
-  for (const id of newSnapshots.keys()) state.seen.add(id);
+  for (const [id, snap] of newSnapshots.entries()) {
+    state.seen.add(id);
+    state.snaps.set(id, snap);
+  }
 
   return Array.from(newSnapshots.entries())
     .slice(0, target)
