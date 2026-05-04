@@ -1,0 +1,425 @@
+/* Shadow-DOM scoped overlay styles, imported via Vite `?raw` and injected into the host's shadow root. */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:host {
+  --fs-accent: #6264a7;
+  --fs-card-w: 420px;
+  --fs-card-h: 780px;
+  --btn-bg: #fff;
+  --btn-hover-read: #f0fdf4;
+  --btn-hover-keep: #eff6ff;
+  --btn-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+  --btn-shadow-hover: 0 6px 28px rgba(0, 0, 0, 0.24);
+  --kc-border: rgba(0, 0, 0, 0.15);
+  --kc-bg: linear-gradient(to bottom, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.06));
+  --kc-shadow: 0 1px 0 rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :host {
+    --btn-bg: #2a2a2e;
+    --btn-hover-read: #1a2e22;
+    --btn-hover-keep: #1a2240;
+    --btn-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+    --btn-shadow-hover: 0 6px 28px rgba(0, 0, 0, 0.6);
+    --kc-border: rgba(255, 255, 255, 0.12);
+    --kc-bg: linear-gradient(to bottom, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+    --kc-shadow: 0 1px 0 rgba(0, 0, 0, 0.4), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  }
+}
+
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(16px) saturate(1.2);
+  animation: backdropIn 0.3s ease;
+}
+@keyframes backdropIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.swipe-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  opacity: 0;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+  pointer-events: none;
+  z-index: 10;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+.swipe-label.active {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+.swipe-label-left {
+  color: #4ade80;
+}
+.swipe-label-right {
+  color: #60a5fa;
+}
+
+.card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--fs-card-w);
+  height: var(--fs-card-h);
+  max-width: 95vw;
+  max-height: 92vh;
+  border-radius: 24px;
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  will-change: transform, opacity;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  touch-action: none;
+}
+
+/* Entrance animation: scale-up + fade-in from a slight translate, applied via
+   class toggling on each new item (handled in Card.tsx). The initial frame
+   (.card-enter) sets the FROM state; .card-enter-active triggers the transition. */
+.card-enter {
+  opacity: 0;
+  transform: translate(-50%, -42%) rotate(var(--rest-tilt, 0deg)) scale(0.92) !important;
+  transition: none !important;
+}
+.card-enter.card-enter-active {
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(var(--rest-tilt, 0deg)) scale(1) !important;
+  transition:
+    transform 0.55s cubic-bezier(0.2, 0.8, 0.3, 1),
+    opacity 0.4s ease !important;
+}
+
+.top-bar {
+  height: 38px;
+  background: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  flex-shrink: 0;
+  z-index: 2;
+  border-radius: 24px 24px 0 0;
+}
+.top-bar .logo {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+.top-bar .cnt {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 12px;
+}
+.top-bar .cnt b {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+.close-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.card iframe {
+  width: 100%;
+  flex: 1;
+  border: none;
+  background: #f5f5f5;
+}
+
+.card-mask {
+  position: absolute;
+  top: 38px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #f5f5f5;
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.card-mask.active {
+  opacity: 1;
+}
+@media (prefers-color-scheme: dark) {
+  .card-mask {
+    background: #292929;
+  }
+}
+
+.bottom-bar {
+  position: absolute;
+  bottom: max(calc(50% - var(--fs-card-h) / 2 - 60px), 16px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 2;
+  align-items: center;
+  animation: fadeUp 0.4s ease 0.2s both;
+}
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--btn-shadow);
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+  background: var(--btn-bg);
+  font-family: inherit;
+}
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--btn-shadow-hover);
+}
+.btn:active {
+  transform: scale(0.96) translateY(0);
+}
+.btn-label {
+  pointer-events: none;
+}
+.btn-read {
+  color: #059669;
+}
+.btn-read:hover {
+  background: var(--btn-hover-read);
+}
+.btn-keep {
+  color: #2563eb;
+}
+.btn-keep:hover {
+  background: var(--btn-hover-keep);
+}
+.btn-esc {
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 10px 12px;
+  box-shadow: none;
+}
+.btn-esc:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  box-shadow: none;
+}
+
+.keycap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 6px;
+  border: 1px solid var(--kc-border);
+  background: var(--kc-bg);
+  box-shadow: var(--kc-shadow);
+  color: inherit;
+  opacity: 0.85;
+}
+.btn-esc .keycap {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.6);
+  opacity: 1;
+}
+@media (prefers-color-scheme: dark) {
+  .btn-read {
+    color: #4ade80;
+  }
+  .btn-keep {
+    color: #60a5fa;
+  }
+}
+
+.progress-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  z-index: 5;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(20px);
+  transition: opacity 0.3s ease;
+}
+.progress-loader.fading {
+  opacity: 0;
+  pointer-events: none;
+}
+.progress-logo {
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+.progress-status {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.45);
+  transition: opacity 0.2s ease;
+}
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 2.5px solid rgba(255, 255, 255, 0.08);
+  border-top-color: var(--fs-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error-overlay,
+.done-overlay {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: var(--fs-card-w);
+  height: var(--fs-card-h);
+  max-width: 95vw;
+  max-height: 92vh;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: #9ca3af;
+  font-size: 14px;
+  background: rgba(22, 22, 22, 0.96);
+  z-index: 3;
+  padding: 24px;
+  text-align: center;
+}
+.done-overlay {
+  background: rgba(0, 0, 0, 0.88);
+  z-index: 4;
+  animation: doneIn 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+@keyframes doneIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+.done-emoji {
+  font-size: 56px;
+}
+.done-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+}
+.done-sub {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.45);
+}
+.error-emoji {
+  font-size: 32px;
+}
+.error-msg {
+  color: #fff;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.done-btn,
+.retry-btn {
+  margin-top: 12px;
+  padding: 10px 28px;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s;
+  font-family: inherit;
+}
+.done-btn:hover,
+.retry-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}

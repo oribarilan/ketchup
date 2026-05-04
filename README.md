@@ -1,55 +1,38 @@
-# Nullify
+# fs
 
-Tinder-style message triage for MS Teams web app.
+Swipe-card triage for unread items across web apps. A browser extension that drops a Tinder-style overlay into Microsoft Teams, Outlook, and (soon) more — left-swipe to mark read, right-swipe to keep, keyboard shortcuts throughout.
 
-## What it does
+The extension lives in [`extension/`](extension/). See [`extension/README.md`](extension/README.md) for setup, dev workflow, and the "add a new plugin" guide.
 
-Click the extension icon on [teams.cloud.microsoft](https://teams.cloud.microsoft) to open a card overlay:
+## Quick start
 
-1. The current page blurs behind a backdrop
-2. A phone-sized card (420×780) appears centered on screen
-3. Inside the card: a **real Teams instance** rendered at mobile resolution via iframe
-4. Teams handles its own responsive layout — sidebar collapses, mobile-friendly UI
-5. Navigate through unread chats with **← Mark Read** / **Keep →**
-6. Everything works natively: reply, react, open threads, click links
+```sh
+cd extension
+npm install
+npm run build
+```
 
-## Why iframe
+Then load `extension/dist/` unpacked in Chrome (`chrome://extensions/` → Developer mode → Load unpacked).
 
-| Approach | Problem |
-|----------|---------|
-| Custom card UI | No reactions, threads, file previews, formatting |
-| Restyle Teams DOM | Breaks emoji picker, popups, portals |
-| Resize browser window | Disruptive, changes user's workspace |
-| **Iframe at card size** | **Teams renders natively, zero DOM hacking** |
+## Why
 
-The extension strips `X-Frame-Options` and CSP headers for the Teams iframe via `declarativeNetRequest`.
+Auth (passkeys, MFA, SSO, conditional access) must run in the user's real browser session — Electron and PWAs can't satisfy Microsoft auth or strip third-party CSP headers. A Manifest V3 extension with a same-origin in-card iframe is the only embedding strategy that holds up in production.
 
-## Controls
+## Architecture at a glance
 
-| Input | Action |
-|-------|--------|
-| **← / H** | Mark as read |
-| **→ / L** | Keep unread |
-| **Esc** | Close overlay |
+- **Plugin registry** drives everything: manifest, headers, sidepanel tiles, content-script registration.
+- **Triage runs in the app's own tab** via a React overlay mounted into shadow DOM.
+- **Sidepanel launcher** opens or focuses the right tab and toggles fs on. It cannot host the triage UI itself (cross-origin).
+- **TypeScript strict, Vite + CRXJS, Vitest + happy-dom, ESLint flat config + Prettier, husky + lint-staged.**
 
-## Install (dev mode)
-
-1. Open `chrome://extensions`
-2. Enable **Developer mode** (top right)
-3. Click **Load unpacked** → select this folder
-4. Navigate to [teams.cloud.microsoft](https://teams.cloud.microsoft)
-5. Click the **Nullify** icon
-
-To reload after code changes: hit the ↻ button on the extension card in `chrome://extensions`, then refresh the Teams tab.
-
-## Files
+## Repo layout
 
 ```
-nullify/
-├── manifest.json   # Manifest V3 + declarativeNetRequest
-├── rules.json      # Strip X-Frame-Options/CSP for iframe
-├── background.js   # Handle icon click → toggle
-├── content.js      # Backdrop + card + iframe + triage controls
-├── icons/          # Extension icons
-└── README.md
+.
+├── extension/        # The fs extension (TypeScript + React + Vite)
+└── electron-app/     # Earlier Electron prototype, kept for reference (not maintained)
 ```
+
+## History
+
+Originally shipped as `Nullify` — a Chrome extension for Microsoft Teams only. Renamed to `fs` in v0.4.0 alongside the rewrite to TypeScript + React + a multi-app plugin architecture.

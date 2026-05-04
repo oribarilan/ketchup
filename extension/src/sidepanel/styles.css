@@ -1,0 +1,137 @@
+:root {
+  color-scheme: light dark;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --fs-bg: #ffffff;
+  --fs-fg: #1a1a1a;
+  --fs-muted: #6b7280;
+  --fs-border: rgba(0, 0, 0, 0.08);
+  --fs-card: #f9fafb;
+  --fs-btn: #1a1a1a;
+  --fs-btn-fg: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fs-bg: #1a1a1a;
+    --fs-fg: #f5f5f5;
+    --fs-muted: #9ca3af;
+    --fs-border: rgba(255, 255, 255, 0.08);
+    --fs-card: #232325;
+    --fs-btn: #f5f5f5;
+    --fs-btn-fg: #1a1a1a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fs-bg);
+  color: var(--fs-fg);
+}
+
+.fs-launcher {
+  padding: 20px 16px;
+}
+
+.fs-launcher header h1 {
+  margin: 0 0 2px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.fs-launcher .hint {
+  color: var(--fs-muted);
+  font-size: 12px;
+  margin: 0 0 16px;
+}
+
+.tile-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tile {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--fs-card);
+  border: 1px solid var(--fs-border);
+  border-radius: 12px;
+  border-left: 3px solid var(--tile-bg, var(--fs-border));
+}
+
+.tile-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.tile-meta {
+  min-width: 0;
+}
+
+.tile-label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--fs-muted);
+}
+@media (prefers-color-scheme: dark) {
+  .badge {
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+.badge-open {
+  background: rgba(74, 222, 128, 0.15);
+  color: #16a34a;
+}
+.badge-loading {
+  opacity: 0.7;
+}
+
+.tile-open {
+  border: none;
+  background: var(--fs-btn);
+  color: var(--fs-btn-fg);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+  font-family: inherit;
+}
+.tile-open:hover:not(:disabled) {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+.tile-open:focus-visible {
+  outline: 2px solid var(--tile-bg, var(--fs-fg));
+  outline-offset: 2px;
+}
+.tile-open:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

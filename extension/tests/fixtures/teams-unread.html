@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <body>
+    <div role="tree" aria-label="Chat list">
+      <div class="fui-TreeItem" role="treeitem" data-tid="chat-alpha-001">
+        <span>Unread Alice Anderson 1</span>
+      </div>
+      <div class="fui-TreeItem" role="treeitem" data-tid="chat-bravo-002">
+        <span>Bob Brown</span>
+      </div>
+      <div class="fui-TreeItem" role="treeitem" data-tid="chat-charlie-003">
+        <span>Unread Charlie Chen 5</span>
+      </div>
+      <div class="fui-TreeItem" role="treeitem" data-tid="chat-delta-004">
+        <span>Unread Dana Diaz 2</span>
+      </div>
+      <!-- Group with children should be skipped -->
+      <div class="fui-TreeItem" role="treeitem" data-tid="group-001">
+        <span>Unread Engineering 3</span>
+        <div role="group">
+          <div class="fui-TreeItem" role="treeitem" data-tid="sub-item-001">
+            <span>Bare sub-channel</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

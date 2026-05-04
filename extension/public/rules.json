@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1000,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        {
+          "header": "x-frame-options",
+          "operation": "remove"
+        },
+        {
+          "header": "content-security-policy",
+          "operation": "remove"
+        },
+        {
+          "header": "content-security-policy-report-only",
+          "operation": "remove"
+        },
+        {
+          "header": "frame-options",
+          "operation": "remove"
+        }
+      ]
+    },
+    "condition": {
+      "requestDomains": [
+        "teams.cloud.microsoft",
+        "teams.microsoft.com"
+      ],
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 1001,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        {
+          "header": "x-frame-options",
+          "operation": "remove"
+        },
+        {
+          "header": "content-security-policy",
+          "operation": "remove"
+        },
+        {
+          "header": "content-security-policy-report-only",
+          "operation": "remove"
+        },
+        {
+          "header": "frame-options",
+          "operation": "remove"
+        }
+      ]
+    },
+    "condition": {
+      "requestDomains": [
+        "outlook.cloud.microsoft",
+        "outlook.office.com",
+        "outlook.office365.com",
+        "outlook.live.com"
+      ],
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    }
+  }
+]
