@@ -53,12 +53,24 @@ export function Overlay({ plugin, onTeardown }: OverlayProps) {
   useKeyboard({
     onLeft: () => fling('left'),
     onRight: () => fling('right'),
+    onSkip: () => void queueRef.current.skip(),
     onEscape: onTeardown,
     iframe: iframeRef.current,
     enabled: queue.state === 'ready',
   });
 
-  const accentStyle = { ['--fs-accent' as string]: plugin.theme.accent } as React.CSSProperties;
+  const cardSize = plugin.cardSize ?? { width: 420, height: 780 };
+  const accentStyle = {
+    ['--fs-accent' as string]: plugin.theme.accent,
+    ['--fs-card-w' as string]: `${cardSize.width}px`,
+    ['--fs-card-h' as string]: `${cardSize.height}px`,
+  } as React.CSSProperties;
+
+  // Per-item label overrides take precedence over plugin defaults.
+  const itemLabels = {
+    left: queue.current?.actionLeftLabel ?? labels.left,
+    right: queue.current?.actionRightLabel ?? labels.right,
+  };
   const showCard = queue.state === 'ready';
   const masked = queue.state === 'loading';
 
@@ -75,14 +87,23 @@ export function Overlay({ plugin, onTeardown }: OverlayProps) {
         disabled={!showCard}
       />
       {showCard && (
-        <Controls
-          labels={labels}
-          index={queue.index}
-          total={queue.items.length}
-          onLeft={() => fling('left')}
-          onRight={() => fling('right')}
-          onClose={onTeardown}
-        />
+        <>
+          <ProgressBadge
+            index={queue.index}
+            total={queue.items.length}
+            totalUnread={queue.totalUnread}
+          />
+          <Controls
+            labels={itemLabels}
+            index={queue.index}
+            total={queue.items.length}
+            hint={queue.current?.actionHint}
+            skipLabel={queue.current?.actionSkipLabel}
+            onLeft={() => fling('left')}
+            onRight={() => fling('right')}
+            onClose={onTeardown}
+          />
+        </>
       )}
       {(iframe.error || queue.state === 'error') && (
         <ErrorState
@@ -125,4 +146,44 @@ function progressFor(iframeReady: boolean, phase: string): number {
   if (phase === 'waiting-app') return 0.55;
   if (phase === 'scraping') return 0.8;
   return 0.95;
+}
+
+interface ProgressBadgeProps {
+  index: number;
+  total: number;
+  totalUnread: number | null;
+}
+
+/**
+ * Prominent counter pill anchored above the card showing triage progress.
+ *
+ * Two truths shown:
+ *  - Position in the loaded batch ("Card X of N").
+ *  - Real backlog size when the plugin reports it ("M unread in inbox" — for
+ *    Outlook this comes from the folder badge; Teams doesn't expose a reliable
+ *    total so this line is omitted).
+ *
+ * The progress bar reflects position WITHIN the loaded batch (i.e. progress
+ * through this triage sitting), not progress through the whole inbox — that
+ * would be misleadingly slow for thousands of unread items.
+ */
+function ProgressBadge({ index, total, totalUnread }: ProgressBadgeProps) {
+  const current = Math.min(index + 1, total);
+  const pct = total === 0 ? 0 : Math.min(index / total, 1);
+  // "Loaded" makes it explicit that N is what fs preloaded, not the total.
+  const loadedSuffix = totalUnread != null && totalUnread > total ? ' loaded' : '';
+  return (
+    <div className="progress-badge" role="status" aria-live="polite">
+      <span className="progress-badge-text">
+        <b>{current}</b> of {total}
+        {loadedSuffix}
+      </span>
+      <div className="progress-badge-track" aria-hidden>
+        <div className="progress-badge-fill" style={{ width: `${pct * 100}%` }} />
+      </div>
+      {totalUnread != null && totalUnread > total && (
+        <span className="progress-badge-sub">{totalUnread.toLocaleString()} unread in inbox</span>
+      )}
+    </div>
+  );
 }

@@ -23,14 +23,14 @@ describe('outlook plugin', () => {
     expect(outlook.headerStripDomains).toContain('outlook.cloud.microsoft');
   });
 
-  it('scrapes only rows with aria-label starting with "Unread"', () => {
-    const items = outlook.scrapeUnread(loadFixture());
+  it('scrapes only rows with aria-label starting with "Unread"', async () => {
+    const items = await Promise.resolve(outlook.scrapeUnread(loadFixture()));
     expect(items).toHaveLength(3);
     expect(items[0]?.name).toMatch(/Yair Tsarfaty/);
   });
 
-  it('strips noise prefixes (Meeting, Marked as ... by Copilot, Collapsed) from name', () => {
-    const items = outlook.scrapeUnread(loadFixture());
+  it('strips noise prefixes (Meeting, Marked as ... by Copilot, Collapsed) from name', async () => {
+    const items = await Promise.resolve(outlook.scrapeUnread(loadFixture()));
     // Sample 3: "Unread Collapsed Marked as high priority by Copilot Inbar Rotem; AskHR Support Transfer Completed - Ori Bar-ilan 9:31 ..."
     const inbar = items.find((i) => i.name.includes('Inbar Rotem'));
     expect(inbar?.name).not.toMatch(/Collapsed/);
@@ -41,55 +41,59 @@ describe('outlook plugin', () => {
     expect(inbar?.name).not.toMatch(/9:31/);
   });
 
-  it('uses data-convid as the stable id when available', () => {
-    const items = outlook.scrapeUnread(loadFixture());
+  it('uses data-convid as the stable id when available', async () => {
+    const items = await Promise.resolve(outlook.scrapeUnread(loadFixture()));
     expect(items[0]?.id).toBe('conv-aaa-001-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
   });
 
-  it('resolve round-trips against the same doc', () => {
+  it('resolve round-trips against the same doc', async () => {
     const doc = loadFixture();
-    const items = outlook.scrapeUnread(doc);
+    const items = await Promise.resolve(outlook.scrapeUnread(doc));
     const first = items[0]!;
     const el = first.resolve(doc);
     expect(el).not.toBeNull();
     expect(el?.getAttribute('aria-label')).toMatch(/Unread/);
   });
 
-  it('resolve returns null against an empty doc', () => {
-    const items = outlook.scrapeUnread(loadFixture());
+  it('resolve returns null against an empty doc', async () => {
+    const items = await Promise.resolve(outlook.scrapeUnread(loadFixture()));
     const empty = new DOMParser().parseFromString('<html><body/></html>', 'text/html');
     expect(items[0]?.resolve(empty)).toBeNull();
   });
 
-  it('returns [] when no unread rows exist', () => {
+  it('returns [] when no unread rows exist', async () => {
     const empty = new DOMParser().parseFromString(
       '<html><body><div>nothing</div></body></html>',
       'text/html',
     );
-    expect(outlook.scrapeUnread(empty)).toEqual([]);
+    expect(await Promise.resolve(outlook.scrapeUnread(empty))).toEqual([]);
   });
 
-  it('markRead clicks then dispatches keydown "q"', async () => {
+  it('per-item actionLeftFn on a non-meeting email clicks the row then dispatches keydown "e"', async () => {
     const doc = loadFixture();
-    const items = outlook.scrapeUnread(doc);
-    const first = items[0]!;
+    const items = await Promise.resolve(outlook.scrapeUnread(doc));
+    // Pick the first non-meeting item (Charlie Chen / PR review).
+    const email = items.find((i) => i.kind !== 'meeting');
+    expect(email).toBeDefined();
     let clicked = false;
-    let qKey = false;
-    first.resolve(doc)!.addEventListener('click', () => (clicked = true));
+    let eKey = false;
+    email!.resolve(doc)!.addEventListener('click', () => (clicked = true));
     doc.addEventListener('keydown', (e) => {
-      if (e.key === 'q') qKey = true;
+      if (e.key === 'e') eKey = true;
     });
-    await outlook.markRead!(doc, first);
+    await email!.actionLeftFn!(doc);
     expect(clicked).toBe(true);
-    expect(qKey).toBe(true);
+    expect(eKey).toBe(true);
   });
 
-  it('markRead throws ItemDetachedError when resolve returns null', async () => {
+  it('per-item actionLeftFn throws ItemDetachedError when row cannot be resolved', async () => {
     const doc = loadFixture();
-    const items = outlook.scrapeUnread(doc);
-    const first = items[0]!;
-    const detached = { ...first, resolve: () => null };
-    await expect(outlook.markRead!(doc, detached)).rejects.toBeInstanceOf(ItemDetachedError);
+    const items = await Promise.resolve(outlook.scrapeUnread(doc));
+    const email = items.find((i) => i.kind !== 'meeting');
+    expect(email).toBeDefined();
+    // Make the item un-resolvable by stripping the row from the doc.
+    email!.resolve(doc)!.remove();
+    await expect(email!.actionLeftFn!(doc)).rejects.toBeInstanceOf(ItemDetachedError);
   });
 
   it('waitForReady resolves when an Unread row exists', async () => {

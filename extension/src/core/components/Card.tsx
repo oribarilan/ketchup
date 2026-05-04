@@ -58,6 +58,7 @@ export const Card = forwardRef<CardHandle, CardProps>(function Card(
     onRight: onSwipeRight,
     disabled: disabled ?? false,
     restTilt,
+    resetKey: itemKey,
   });
 
   useImperativeHandle(handleRef, () => ({ fling: swipe.fling }), [swipe.fling]);
@@ -104,7 +105,7 @@ export const Card = forwardRef<CardHandle, CardProps>(function Card(
   );
 });
 
-/** Stable hash → tilt in [-3, +3] degrees (excluding the dead zone near 0). */
+/** Stable hash → tilt in [±0.4, ±1.2] degrees (excluding the dead zone near 0). */
 function seededTilt(seed: string): number {
   let h = 2166136261;
   for (let i = 0; i < seed.length; i++) {
@@ -113,6 +114,6 @@ function seededTilt(seed: string): number {
   }
   const norm = ((h >>> 0) % 1000) / 500 - 1; // -1..1
   const sign = norm < 0 ? -1 : 1;
-  const mag = 1.2 + Math.abs(norm) * 1.8; // 1.2..3.0
+  const mag = 0.4 + Math.abs(norm) * 0.8; // 0.4..1.2
   return sign * mag;
 }

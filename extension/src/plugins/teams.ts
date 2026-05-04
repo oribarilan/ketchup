@@ -46,10 +46,13 @@ const teams: Plugin = {
   },
 
   scrapeUnread(doc: Document): UnreadItem[] {
+    // Match what Teams' "Unread" filter surfaces — every chat-list tree item
+    // whose label starts with "Unread", regardless of section (Chats, Channels,
+    // pinned, etc.). Section-specific filtering is intentionally NOT applied.
     const items = doc.querySelectorAll('.fui-TreeItem[role="treeitem"]');
     const result: UnreadItem[] = [];
     items.forEach((item, idx) => {
-      if (result.length >= 30) return;
+      if (result.length >= 100) return;
       const text = (item.textContent ?? '').trim();
       if (!text.startsWith('Unread')) return;
       if (item.querySelector('[role="group"]')) return;
@@ -81,12 +84,20 @@ const teams: Plugin = {
     el.click();
   },
 
-  async markRead(doc: Document, item: UnreadItem): Promise<void> {
-    // In Teams, viewing a chat marks it read. Click is sufficient.
-    const el = item.resolve(doc);
-    if (!el) throw new ItemDetachedError(item.id);
-    el.click();
+  // Teams marks chats read on view. openItem already clicks the chat to show
+  // it in the iframe, so the left action ("Mark Read") is implicitly done.
+  // Defining actionLeft as a no-op makes the contract explicit.
+  async actionLeft(_doc: Document, _item: UnreadItem): Promise<void> {
+    // no-op
   },
+
+  // NOTE: Teams' chat-rail counter badge is computed server-side and does not
+  // reliably equal the number of unread items in the DOM (it appears to
+  // exclude muted/non-priority chats in ways we can't see). Surfacing it as
+  // "total" misled users, so we don't expose it. The progress counter just
+  // shows "X of N" where N is what fs actually has to triage — the same set
+  // Teams' "Unread" filter would surface. Outlook keeps `getTotalUnread`
+  // because its folder badge IS faithful.
 };
 
 export default teams;

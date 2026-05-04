@@ -9,6 +9,12 @@ export interface SwipeOptions {
   disabled?: boolean;
   /** Resting tilt for the card, in degrees. Composed with the drag rotation. */
   restTilt?: number;
+  /**
+   * When this value changes, the swipe state is reset. Pass `itemKey` so the
+   * fly-off animation lingers (card stays invisible) until the next item is
+   * actually rendered, then snaps back to rest.
+   */
+  resetKey?: string;
 }
 
 export interface SwipeBindings {
@@ -43,7 +49,7 @@ const SNAP_MS = 250;
  * Animation is CSS-transition driven via inline style transitions.
  */
 export function useSwipe(opts: SwipeOptions): SwipeState {
-  const { onLeft, onRight, threshold = 100, disabled = false, restTilt = 0 } = opts;
+  const { onLeft, onRight, threshold = 100, disabled = false, restTilt = 0, resetKey } = opts;
   const [dragX, setDragX] = useState(0);
   const [animating, setAnimating] = useState<'idle' | 'snapping' | 'flying'>('idle');
   const [flyDir, setFlyDir] = useState<-1 | 0 | 1>(0);
@@ -64,15 +70,26 @@ export function useSwipe(opts: SwipeOptions): SwipeState {
     setAnimating('idle');
   }
 
+  // Reset when the parent signals a new item arrived. This is what unsticks
+  // the card from the fly-off frozen state and lets the entrance animation
+  // run on the new content.
+  useEffect(() => {
+    if (resetKey === undefined) return;
+    reset();
+  }, [resetKey]);
+
   function fly(dir: 'left' | 'right') {
     if (animating === 'flying') return;
     setAnimating('flying');
     setFlyDir(dir === 'left' ? -1 : 1);
     setDragX(dir === 'left' ? -window.innerWidth : window.innerWidth);
+    // Fire the callback after the visual fly completes. We do NOT reset state
+    // here — the card stays off-screen + invisible until `resetKey` changes
+    // (i.e. the queue advanced to a new item). This prevents the brief
+    // re-appearance of the old card while async actions like openItem run.
     setTimeout(() => {
       if (dir === 'left') onLeftRef.current();
       else onRightRef.current();
-      reset();
     }, FLY_MS);
   }
 

@@ -20,44 +20,44 @@ describe('teams plugin', () => {
     expect(teams.headerStripDomains.length).toBeGreaterThan(0);
   });
 
-  it('scrapes only unread, non-group items with valid names', () => {
+  it('scrapes only unread, non-group items with valid names', async () => {
     const doc = loadFixture();
-    const items = teams.scrapeUnread(doc);
+    const items = await Promise.resolve(teams.scrapeUnread(doc));
     const names = items.map((i) => i.name);
     expect(names).toEqual(['Alice Anderson', 'Charlie Chen', 'Dana Diaz']);
   });
 
-  it('captures stable ids and resolves them back to the original element', () => {
+  it('captures stable ids and resolves them back to the original element', async () => {
     const doc = loadFixture();
-    const items = teams.scrapeUnread(doc);
+    const items = await Promise.resolve(teams.scrapeUnread(doc));
     expect(items[0]?.id).toBe('chat-alpha-001');
     const resolved = items[0]?.resolve(doc);
     expect(resolved).toBeTruthy();
     expect(resolved?.getAttribute('data-tid')).toBe('chat-alpha-001');
   });
 
-  it('returns null from resolve against an empty document', () => {
-    const items = teams.scrapeUnread(loadFixture());
+  it('returns null from resolve against an empty document', async () => {
+    const items = await Promise.resolve(teams.scrapeUnread(loadFixture()));
     const empty = new DOMParser().parseFromString('<html><body></body></html>', 'text/html');
     expect(items[0]?.resolve(empty)).toBeNull();
   });
 
-  it('returns [] when the chat tree is missing', () => {
+  it('returns [] when the chat tree is missing', async () => {
     const empty = new DOMParser().parseFromString(
       '<html><body><div>nothing here</div></body></html>',
       'text/html',
     );
-    expect(teams.scrapeUnread(empty)).toEqual([]);
+    expect(await Promise.resolve(teams.scrapeUnread(empty))).toEqual([]);
   });
 
-  it('markRead clicks the resolved element', async () => {
+  it('actionLeft is a no-op (Teams marks chats read on view)', async () => {
     const doc = loadFixture();
-    const items = teams.scrapeUnread(doc);
+    const items = await Promise.resolve(teams.scrapeUnread(doc));
     const first = items[0]!;
     const el = first.resolve(doc)!;
     let clicked = 0;
     el.addEventListener('click', () => clicked++);
-    await teams.markRead!(doc, first);
-    expect(clicked).toBe(1);
+    await teams.actionLeft!(doc, first);
+    expect(clicked).toBe(0);
   });
 });

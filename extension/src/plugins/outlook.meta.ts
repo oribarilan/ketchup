@@ -24,7 +24,8 @@ const outlookMeta: PluginMetadata = {
     'outlook.office365.com',
     'outlook.live.com',
   ],
-  swipeLabels: { left: '← Mark Read', right: 'Keep →' },
+  swipeLabels: { left: '← Archive', right: 'Keep →' },
+  cardSize: { width: 720, height: 820 },
 };
 
 export default outlookMeta;
