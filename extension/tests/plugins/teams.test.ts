@@ -50,14 +50,111 @@ describe('teams plugin', () => {
     expect(await Promise.resolve(teams.scrapeUnread(empty))).toEqual([]);
   });
 
-  it('actionLeft is a no-op (Teams marks chats read on view)', async () => {
+  // --- Action surface helpers ---
+  //
+  // Teams' chat row exposes a "More options" button on hover; clicking it
+  // opens a `[role="menu"]` (rendered elsewhere in the DOM) with menu items
+  // including "Mark as read" and "Mark as unread". We synthesize this shape
+  // per-test so each test owns its menu state.
+  function attachMoreOptionsAndMenu(
+    doc: Document,
+    rowEl: HTMLElement,
+  ): {
+    moreBtn: HTMLButtonElement;
+    revealMenu: (labels: string[]) => HTMLElement;
+    menuRoot: HTMLElement;
+  } {
+    const moreBtn = doc.createElement('button');
+    moreBtn.setAttribute('aria-label', 'More options');
+    rowEl.appendChild(moreBtn);
+
+    const menuRoot = doc.createElement('div');
+    doc.body.appendChild(menuRoot);
+
+    const revealMenu = (labels: string[]) => {
+      menuRoot.innerHTML = '';
+      const menu = doc.createElement('div');
+      menu.setAttribute('role', 'menu');
+      for (const label of labels) {
+        const mi = doc.createElement('div');
+        mi.setAttribute('role', 'menuitem');
+        mi.setAttribute('aria-label', label);
+        mi.textContent = label;
+        menu.appendChild(mi);
+      }
+      menuRoot.appendChild(menu);
+      return menu;
+    };
+
+    // Default behavior: clicking "More options" reveals both menu items.
+    moreBtn.addEventListener('click', () => {
+      revealMenu(['Mark as read', 'Mark as unread']);
+    });
+
+    return { moreBtn, revealMenu, menuRoot };
+  }
+
+  it('actionLeft opens the row context menu and clicks "Mark as read"', async () => {
     const doc = loadFixture();
     const items = await Promise.resolve(teams.scrapeUnread(doc));
     const first = items[0]!;
-    const el = first.resolve(doc)!;
-    let clicked = 0;
-    el.addEventListener('click', () => clicked++);
+    const row = first.resolve(doc)!;
+    const surface = attachMoreOptionsAndMenu(doc, row);
+
+    let moreClicked = 0;
+    surface.moreBtn.addEventListener('click', () => moreClicked++);
+
+    let readClicked = 0;
+    let unreadClicked = 0;
+    // Spy on menuitems by delegating from menuRoot (items are created on click).
+    surface.menuRoot.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const label = target.closest<HTMLElement>('[role="menuitem"]')?.getAttribute('aria-label');
+      if (label === 'Mark as read') readClicked++;
+      if (label === 'Mark as unread') unreadClicked++;
+    });
+
     await teams.actionLeft!(doc, first);
-    expect(clicked).toBe(0);
+
+    expect(moreClicked).toBe(1);
+    expect(readClicked).toBe(1);
+    expect(unreadClicked).toBe(0);
+  });
+
+  it('actionRight opens the row context menu and clicks "Mark as unread"', async () => {
+    const doc = loadFixture();
+    const items = await Promise.resolve(teams.scrapeUnread(doc));
+    const first = items[0]!;
+    const row = first.resolve(doc)!;
+    const surface = attachMoreOptionsAndMenu(doc, row);
+
+    let moreClicked = 0;
+    surface.moreBtn.addEventListener('click', () => moreClicked++);
+
+    let readClicked = 0;
+    let unreadClicked = 0;
+    surface.menuRoot.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const label = target.closest<HTMLElement>('[role="menuitem"]')?.getAttribute('aria-label');
+      if (label === 'Mark as read') readClicked++;
+      if (label === 'Mark as unread') unreadClicked++;
+    });
+
+    expect(teams.actionRight).toBeDefined();
+    await teams.actionRight!(doc, first);
+
+    expect(moreClicked).toBe(1);
+    expect(unreadClicked).toBe(1);
+    expect(readClicked).toBe(0);
+  });
+
+  it('actionLeft/Right resolve gracefully when the row is gone', async () => {
+    const doc = loadFixture();
+    const items = await Promise.resolve(teams.scrapeUnread(doc));
+    const first = items[0]!;
+    first.resolve(doc)!.remove();
+    // Should not throw — we want the queue to advance, not crash.
+    await expect(teams.actionLeft!(doc, first)).resolves.toBeUndefined();
+    await expect(teams.actionRight!(doc, first)).resolves.toBeUndefined();
   });
 });

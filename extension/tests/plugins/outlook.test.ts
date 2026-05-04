@@ -69,31 +69,210 @@ describe('outlook plugin', () => {
     expect(await Promise.resolve(outlook.scrapeUnread(empty))).toEqual([]);
   });
 
-  it('per-item actionLeftFn on a non-meeting email clicks the row then dispatches keydown "e"', async () => {
+  // Helpers for action-surface tests. The live Outlook DOM exposes command-bar
+  // buttons (Archive, Mark as unread) that act on the currently-selected row.
+  // We synthesize them per-test and verify the plugin clicks them after
+  // selecting the row.
+  function attachToolbar(doc: Document): {
+    archiveBtn: HTMLButtonElement;
+    unreadBtn: HTMLButtonElement;
+  } {
+    const toolbar = doc.createElement('div');
+    toolbar.setAttribute('role', 'toolbar');
+    const archiveBtn = doc.createElement('button');
+    archiveBtn.setAttribute('aria-label', 'Archive');
+    const unreadBtn = doc.createElement('button');
+    unreadBtn.setAttribute('aria-label', 'Mark as unread');
+    toolbar.appendChild(archiveBtn);
+    toolbar.appendChild(unreadBtn);
+    doc.body.appendChild(toolbar);
+    // happy-dom returns null for offsetParent on detached elements; force a
+    // truthy value so `offsetParent !== null` visibility checks pass.
+    for (const b of [archiveBtn, unreadBtn]) {
+      Object.defineProperty(b, 'offsetParent', { configurable: true, get: () => doc.body });
+    }
+    return { archiveBtn, unreadBtn };
+  }
+
+  it('per-item actionLeftFn (email) selects the row then clicks the Archive toolbar button', async () => {
     const doc = loadFixture();
     const items = await Promise.resolve(outlook.scrapeUnread(doc));
-    // Pick the first non-meeting item (Charlie Chen / PR review).
-    const email = items.find((i) => i.kind !== 'meeting');
-    expect(email).toBeDefined();
-    let clicked = false;
-    let eKey = false;
-    email!.resolve(doc)!.addEventListener('click', () => (clicked = true));
-    doc.addEventListener('keydown', (e) => {
-      if (e.key === 'e') eKey = true;
-    });
-    await email!.actionLeftFn!(doc);
-    expect(clicked).toBe(true);
-    expect(eKey).toBe(true);
+    const email = items.find((i) => i.kind !== 'meeting')!;
+    const { archiveBtn, unreadBtn } = attachToolbar(doc);
+
+    let rowClicked = 0;
+    let archiveClicked = 0;
+    let unreadClicked = 0;
+    email.resolve(doc)!.addEventListener('click', () => rowClicked++);
+    archiveBtn.addEventListener('click', () => archiveClicked++);
+    unreadBtn.addEventListener('click', () => unreadClicked++);
+
+    await email.actionLeftFn!(doc);
+
+    expect(rowClicked).toBeGreaterThanOrEqual(1);
+    expect(archiveClicked).toBe(1);
+    expect(unreadClicked).toBe(0);
   });
 
-  it('per-item actionLeftFn throws ItemDetachedError when row cannot be resolved', async () => {
+  it('per-item actionRightFn (email) selects the row then clicks the Mark-as-unread toolbar button', async () => {
+    const doc = loadFixture();
+    const items = await Promise.resolve(outlook.scrapeUnread(doc));
+    const email = items.find((i) => i.kind !== 'meeting')!;
+    const { archiveBtn, unreadBtn } = attachToolbar(doc);
+
+    let rowClicked = 0;
+    let archiveClicked = 0;
+    let unreadClicked = 0;
+    email.resolve(doc)!.addEventListener('click', () => rowClicked++);
+    archiveBtn.addEventListener('click', () => archiveClicked++);
+    unreadBtn.addEventListener('click', () => unreadClicked++);
+
+    expect(email.actionRightFn).toBeDefined();
+    await email.actionRightFn!(doc);
+
+    expect(rowClicked).toBeGreaterThanOrEqual(1);
+    expect(unreadClicked).toBe(1);
+    expect(archiveClicked).toBe(0);
+  });
+
+  it('actionLeftFn falls back to a keyboard shortcut when no Archive button is visible', async () => {
+    const doc = loadFixture();
+    const items = await Promise.resolve(outlook.scrapeUnread(doc));
+    const email = items.find((i) => i.kind !== 'meeting')!;
+    // No toolbar attached. Plugin should fall back to dispatching a keydown
+    // somewhere in the doc tree (capture-phase listener catches any target).
+    let archiveKey = 0;
+    doc.addEventListener(
+      'keydown',
+      (e) => {
+        if ((e as KeyboardEvent).key.toLowerCase() === 'e') archiveKey++;
+      },
+      true,
+    );
+
+    await email.actionLeftFn!(doc);
+    expect(archiveKey).toBeGreaterThanOrEqual(1);
+  });
+
+  it('actionLeftFn (email) throws ItemDetachedError when row cannot be resolved', async () => {
     const doc = loadFixture();
     const items = await Promise.resolve(outlook.scrapeUnread(doc));
     const email = items.find((i) => i.kind !== 'meeting');
     expect(email).toBeDefined();
-    // Make the item un-resolvable by stripping the row from the doc.
     email!.resolve(doc)!.remove();
     await expect(email!.actionLeftFn!(doc)).rejects.toBeInstanceOf(ItemDetachedError);
+  });
+
+  it('actionLeftFn waits for a delayed Archive toolbar button before failing back to keyboard', async () => {
+    const doc = loadFixture();
+    const items = await Promise.resolve(outlook.scrapeUnread(doc));
+    const email = items.find((i) => i.kind !== 'meeting')!;
+
+    let archiveClicked = 0;
+    let archiveKey = 0;
+
+    // Toolbar appears asynchronously, ~250ms after the row is clicked.
+    email.resolve(doc)!.addEventListener('click', () => {
+      setTimeout(() => {
+        const toolbar = doc.createElement('div');
+        toolbar.setAttribute('role', 'toolbar');
+        const btn = doc.createElement('button');
+        btn.setAttribute('aria-label', 'Archive');
+        Object.defineProperty(btn, 'offsetParent', { configurable: true, get: () => doc.body });
+        btn.addEventListener('click', () => archiveClicked++);
+        toolbar.appendChild(btn);
+        doc.body.appendChild(toolbar);
+      }, 250);
+    });
+
+    doc.addEventListener('keydown', (e) => {
+      if ((e as KeyboardEvent).key.toLowerCase() === 'e') archiveKey++;
+    });
+
+    await email.actionLeftFn!(doc);
+    expect(archiveClicked).toBe(1);
+    // Did NOT fall back to keyboard since the button appeared in time.
+    expect(archiveKey).toBe(0);
+  });
+
+  it('actionLeftFn does not re-click an already-selected row (avoid Outlook deselect toggle)', async () => {
+    const doc = loadFixture();
+    const items = await Promise.resolve(outlook.scrapeUnread(doc));
+    const email = items.find((i) => i.kind !== 'meeting')!;
+    const row = email.resolve(doc)!;
+    // Mark the row as already selected (e.g. openItem just clicked it).
+    row.setAttribute('aria-selected', 'true');
+
+    const { archiveBtn } = attachToolbar(doc);
+
+    let rowClicked = 0;
+    let archiveClicked = 0;
+    row.addEventListener('click', () => rowClicked++);
+    archiveBtn.addEventListener('click', () => archiveClicked++);
+
+    await email.actionLeftFn!(doc);
+
+    expect(rowClicked).toBe(0); // Did not toggle selection.
+    expect(archiveClicked).toBe(1);
+  });
+
+  it('actionRightFn (email) throws ItemDetachedError when row cannot be resolved', async () => {
+    const doc = loadFixture();
+    const items = await Promise.resolve(outlook.scrapeUnread(doc));
+    const email = items.find((i) => i.kind !== 'meeting');
+    email!.resolve(doc)!.remove();
+    await expect(email!.actionRightFn!(doc)).rejects.toBeInstanceOf(ItemDetachedError);
+  });
+
+  // Regression: the second archive in a row was hitting the toolbar's Archive
+  // button before Outlook had propagated the new selection — so it archived
+  // the *previous* (auto-selected) message instead of our row. The action
+  // must wait until our row is `aria-selected="true"` before clicking Archive.
+  it('actionLeftFn does not click Archive until our row is aria-selected (stale-toolbar guard)', async () => {
+    const doc = loadFixture();
+    const items = await Promise.resolve(outlook.scrapeUnread(doc));
+    const email = items.find((i) => i.kind !== 'meeting')!;
+    const row = email.resolve(doc)!;
+
+    // Pre-existing (stale) Archive button — represents the post-first-archive
+    // state where Outlook left the toolbar bound to the auto-selected message.
+    const { archiveBtn } = attachToolbar(doc);
+
+    let archiveClicked = 0;
+    let archivedWhileSelected = false;
+    archiveBtn.addEventListener('click', () => {
+      archiveClicked++;
+      archivedWhileSelected = row.getAttribute('aria-selected') === 'true';
+    });
+
+    // Outlook flips aria-selected ~250ms after our row click — modelling
+    // the SPA's async selection update.
+    row.addEventListener('click', () => {
+      setTimeout(() => row.setAttribute('aria-selected', 'true'), 250);
+    });
+
+    await email.actionLeftFn!(doc);
+
+    expect(archiveClicked).toBe(1);
+    expect(archivedWhileSelected).toBe(true);
+  });
+
+  it('openItem waits for the clicked row to become aria-selected before resolving', async () => {
+    const doc = loadFixture();
+    const items = await Promise.resolve(outlook.scrapeUnread(doc));
+    const email = items.find((i) => i.kind !== 'meeting')!;
+    const row = email.resolve(doc)!;
+
+    row.addEventListener('click', () => {
+      setTimeout(() => row.setAttribute('aria-selected', 'true'), 200);
+    });
+
+    const t0 = Date.now();
+    await outlook.openItem!(doc, email);
+    const elapsed = Date.now() - t0;
+    expect(row.getAttribute('aria-selected')).toBe('true');
+    // Should have waited at least the ~200ms it took for selection to flip.
+    expect(elapsed).toBeGreaterThanOrEqual(180);
   });
 
   it('waitForReady resolves when an Unread row exists', async () => {
@@ -165,7 +344,12 @@ describe('outlook plugin', () => {
     });
 
     let clicked = false;
-    row.addEventListener('click', () => (clicked = true));
+    row.addEventListener('click', () => {
+      clicked = true;
+      // Mirror real Outlook: clicking the row flips it to aria-selected so
+      // openItem's selection-convergence wait can resolve.
+      row.setAttribute('aria-selected', 'true');
+    });
 
     await expect(outlook.openItem!(doc, first)).resolves.toBeUndefined();
     expect(clicked).toBe(true);

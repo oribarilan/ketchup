@@ -16,6 +16,12 @@ export interface TriageQueue {
   error: Error | null;
   /** Plugin-reported total unread count if available (e.g. Outlook folder badge). */
   totalUnread: number | null;
+  /**
+   * True while `plugin.openItem` is in flight (initial load + every advance /
+   * markRead). The overlay uses this to mask the iframe so the user never sees
+   * the inbox-list → message transition that openItem causes inside the app.
+   */
+  opening: boolean;
   /** Mark current as read (fires plugin.markRead) then advance. */
   markCurrentRead(): Promise<void>;
   /** Skip current (no markRead) and advance. */
@@ -47,7 +53,27 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
   const [error, setError] = useState<Error | null>(null);
   const [totalUnread, setTotalUnread] = useState<number | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [opening, setOpening] = useState(false);
   const inFlight = useRef(false);
+
+  // Centralized openItem wrapper that flips the `opening` flag so the UI can
+  // mask the iframe through the click → in-app navigation transition. Catches
+  // ItemDetachedError silently (queue advances), warns on others.
+  const openWithMask = useCallback(
+    async (doc: Document, target: UnreadItem) => {
+      setOpening(true);
+      try {
+        await plugin.openItem?.(doc, target);
+      } catch (e) {
+        if (!(e instanceof ItemDetachedError)) {
+          console.warn('ketchup: openItem failed', e);
+        }
+      } finally {
+        setOpening(false);
+      }
+    },
+    [plugin],
+  );
 
   useEffect(() => {
     if (!iframeReady || !contentDocument) {
@@ -77,13 +103,7 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
         } else {
           setPhase('opening');
           setState('ready');
-          try {
-            await plugin.openItem?.(contentDocument, scraped[0]!);
-          } catch (e) {
-            if (!(e instanceof ItemDetachedError)) {
-              console.warn('ketchup: openItem failed', e);
-            }
-          }
+          await openWithMask(contentDocument, scraped[0]!);
         }
       } catch (e) {
         if (cancelled) return;
@@ -94,7 +114,7 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
     return () => {
       cancelled = true;
     };
-  }, [plugin, contentDocument, iframeReady, reloadKey]);
+  }, [plugin, contentDocument, iframeReady, reloadKey, openWithMask]);
 
   const fetching = useRef(false);
 
@@ -141,13 +161,7 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
             setIndex(next);
             setState('ready');
             if (contentDocument && more[0]) {
-              try {
-                await plugin.openItem?.(contentDocument, more[0]);
-              } catch (e) {
-                if (!(e instanceof ItemDetachedError)) {
-                  console.warn('ketchup: openItem failed', e);
-                }
-              }
+              await openWithMask(contentDocument, more[0]);
             }
             return;
           }
@@ -159,16 +173,10 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
       setIndex(next);
       const target = items[next];
       if (target && contentDocument) {
-        try {
-          await plugin.openItem?.(contentDocument, target);
-        } catch (e) {
-          if (!(e instanceof ItemDetachedError)) {
-            console.warn('ketchup: openItem failed', e);
-          }
-        }
+        await openWithMask(contentDocument, target);
       }
     },
-    [items, contentDocument, plugin, fetchNext],
+    [items, contentDocument, plugin, fetchNext, openWithMask],
   );
 
   const markCurrentRead = useCallback(async () => {
@@ -233,6 +241,7 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
     current: items[index] ?? null,
     error,
     totalUnread,
+    opening,
     markCurrentRead,
     advance,
     skip: async () => {

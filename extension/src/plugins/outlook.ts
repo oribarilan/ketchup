@@ -100,9 +100,15 @@ const outlook: Plugin = {
     // After `scrapeUnread` scrolls through the list, the row for an early
     // item is almost always virtualized out of the DOM. Use the saved
     // per-row scroll position to bring it back before clicking.
+    //
+    // Then await selection — Outlook updates `aria-selected` and rebinds its
+    // command bar asynchronously after the click. If we don't wait, follow-up
+    // actions (the user's swipe-to-archive) can fire against a toolbar still
+    // bound to the previous message and archive the wrong thing.
     const snap = docState.get(doc)?.snaps.get(item.id);
     const el = await ensureRow(doc, item, snap?.scrollPos ?? 0);
     el.click();
+    await waitForSelection(el, SELECTION_TIMEOUT_MS);
   },
 
   /**
@@ -198,11 +204,32 @@ function buildItem(id: string, snap: OutlookSnap): UnreadItem {
       await archive(d);
     };
   } else {
+    // Inbox email.
+    //
+    // Left swipe = Archive. Critical: we must wait until OUR row is the
+    // active selection before clicking the toolbar Archive button. Outlook's
+    // command bar binds to whatever Outlook currently considers selected,
+    // and selection updates asynchronously after a row click. If we click
+    // Archive too early we end up archiving the previously-selected message
+    // (the one Outlook auto-selected after the previous archive). Symptom:
+    // first archive works, second silently archives the wrong message.
     item.actionLeftFn = async (d) => {
-      const el = await ensureRow(d, item, snap.scrollPos);
-      el.click();
-      await new Promise((r) => setTimeout(r, 120));
-      d.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', bubbles: true, cancelable: true }));
+      await ensureRowSelected(d, item, snap.scrollPos);
+      const btn = await waitForToolbarButton(d, /^archive$/i, /\barchive\b/i);
+      if (btn) btn.click();
+      else dispatchShortcut(d, 'e', 'KeyE');
+    };
+
+    // Right swipe = Keep in inbox, but unread.
+    //
+    // openItem clicks the row to render it in the iframe — Outlook treats
+    // that as "read". To honor "keep unread" we must explicitly mark-unread
+    // afterward. Same selection-convergence requirement as Archive.
+    item.actionRightFn = async (d) => {
+      await ensureRowSelected(d, item, snap.scrollPos);
+      const btn = await waitForToolbarButton(d, /^mark as unread$/i, /\bmark.*unread\b/i);
+      if (btn) btn.click();
+      else dispatchShortcut(d, 'u', 'KeyU', { ctrl: true });
     };
   }
   return item;
@@ -273,8 +300,144 @@ async function waitForElement<T>(
 }
 
 async function archive(doc: Document): Promise<void> {
-  await new Promise((r) => setTimeout(r, 300));
-  doc.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', bubbles: true, cancelable: true }));
+  // Give the RSVP menu a moment to dismiss before we look for Archive.
+  await new Promise((r) => setTimeout(r, 200));
+  const btn = await waitForToolbarButton(doc, /^archive$/i, /\barchive\b/i);
+  if (btn) {
+    btn.click();
+    return;
+  }
+  dispatchShortcut(doc, 'e', 'KeyE');
+}
+
+function isSelected(el: HTMLElement): boolean {
+  return el.getAttribute('aria-selected') === 'true';
+}
+
+const SELECTION_TIMEOUT_MS = 1500;
+const SELECTION_POLL_MS = 30;
+/** Settle gap after selection converges so Outlook's command bar can rebind to the new row. */
+const SELECTION_SETTLE_MS = 120;
+
+/**
+ * Resolve the row, ensure it is the actively-selected row in Outlook, and
+ * return it. Used by `actionLeftFn` / `actionRightFn` so the toolbar buttons
+ * (Archive, Mark as unread) target our row and not whatever Outlook
+ * auto-selected after the previous action.
+ *
+ * Outlook's selection update is asynchronous: a click flips `aria-selected`
+ * and rebinds the command bar a frame or two later. We click only when the
+ * row isn't already selected (re-clicking a selected row toggles it off),
+ * then poll `aria-selected="true"` and add a small settle.
+ */
+async function ensureRowSelected(
+  doc: Document,
+  item: UnreadItem,
+  scrollPos: number,
+): Promise<HTMLElement> {
+  const el = await ensureRow(doc, item, scrollPos);
+  if (!isSelected(el)) el.click();
+  const ok = await waitForSelection(el, SELECTION_TIMEOUT_MS);
+  if (!ok) {
+    // First click didn't take — try once more before giving up.
+    el.click();
+    await waitForSelection(el, SELECTION_TIMEOUT_MS / 2);
+  }
+  await new Promise((r) => setTimeout(r, SELECTION_SETTLE_MS));
+  return el;
+}
+
+async function waitForSelection(el: HTMLElement, timeoutMs: number): Promise<boolean> {
+  if (isSelected(el)) return true;
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, SELECTION_POLL_MS));
+    if (isSelected(el)) return true;
+  }
+  return false;
+}
+
+const TOOLBAR_BUTTON_TIMEOUT_MS = 1500;
+const TOOLBAR_BUTTON_POLL_MS = 60;
+
+/**
+ * Poll for a visible, enabled toolbar button matching `exact` (preferred) or
+ * `loose`. Returns the button or null after the timeout. The selection-driven
+ * Outlook command bar can take a beat to (re)render after a row click — this
+ * keeps actions reliable across slow renders without inflating the happy-path
+ * latency.
+ */
+async function waitForToolbarButton(
+  doc: Document,
+  exact: RegExp,
+  loose: RegExp,
+): Promise<HTMLButtonElement | null> {
+  const find = (): HTMLButtonElement | null => {
+    const candidates = Array.from(doc.querySelectorAll<HTMLButtonElement>('button[aria-label]'));
+    const visible = candidates.filter((b) => {
+      const label = b.getAttribute('aria-label') ?? '';
+      if (b.getAttribute('aria-disabled') === 'true' || b.disabled) return false;
+      if ((b as HTMLElement).offsetParent === null) return false;
+      return exact.test(label) || loose.test(label);
+    });
+    const exactMatch = visible.find((b) => exact.test(b.getAttribute('aria-label') ?? ''));
+    return exactMatch ?? visible[0] ?? null;
+  };
+  let found = find();
+  if (found) return found;
+  const deadline = Date.now() + TOOLBAR_BUTTON_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, TOOLBAR_BUTTON_POLL_MS));
+    found = find();
+    if (found) return found;
+  }
+  return null;
+}
+
+interface ShortcutModifiers {
+  ctrl?: boolean;
+  shift?: boolean;
+  alt?: boolean;
+  meta?: boolean;
+}
+
+/**
+ * Dispatch a keyboard shortcut. Targets `document.activeElement` when present
+ * (Outlook's keyboard shortcuts listen on the focused message pane), falling
+ * back to `defaultView` and finally `doc` itself. Includes both `key` and
+ * `code` so apps that match on either form pick it up.
+ */
+function dispatchShortcut(
+  doc: Document,
+  key: string,
+  code: string,
+  mods: ShortcutModifiers = {},
+): void {
+  const init: KeyboardEventInit = {
+    key,
+    code,
+    bubbles: true,
+    cancelable: true,
+    ctrlKey: !!mods.ctrl,
+    shiftKey: !!mods.shift,
+    altKey: !!mods.alt,
+    metaKey: !!mods.meta,
+  };
+  const targets: EventTarget[] = [];
+  const active = doc.activeElement;
+  if (active && active !== doc.body) targets.push(active);
+  const view = doc.defaultView;
+  if (view) targets.push(view);
+  targets.push(doc);
+  if (doc.body) targets.push(doc.body);
+  for (const t of targets) {
+    try {
+      t.dispatchEvent(new KeyboardEvent('keydown', init));
+      t.dispatchEvent(new KeyboardEvent('keyup', init));
+    } catch {
+      // Some targets (e.g. Window in jsdom) may reject KeyboardEvent — keep going.
+    }
+  }
 }
 
 const NOISE = [

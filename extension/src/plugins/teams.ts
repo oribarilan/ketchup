@@ -84,11 +84,20 @@ const teams: Plugin = {
     el.click();
   },
 
-  // Teams marks chats read on view. openItem already clicks the chat to show
-  // it in the iframe, so the left action ("Mark Read") is implicitly done.
-  // Defining actionLeft as a no-op makes the contract explicit.
-  async actionLeft(_doc: Document, _item: UnreadItem): Promise<void> {
-    // no-op
+  // Left swipe = "cleanup" = Mark as read.
+  // Right swipe = "keep" = Mark as unread (counter-acts the implicit
+  // mark-read that openItem triggers when previewing the chat).
+  //
+  // Both actions reach for the chat row's "More options" button (the kebab
+  // that appears on hover/focus) and click the matching menu item. If the row
+  // has been virtualized out, or the menu fails to appear, we resolve quietly
+  // so the queue can advance instead of crashing.
+  async actionLeft(doc: Document, item: UnreadItem): Promise<void> {
+    await runRowMenuAction(doc, item, 'Mark as read');
+  },
+
+  async actionRight(doc: Document, item: UnreadItem): Promise<void> {
+    await runRowMenuAction(doc, item, 'Mark as unread');
   },
 
   // NOTE: Teams' chat-rail counter badge is computed server-side and does not
@@ -101,3 +110,60 @@ const teams: Plugin = {
 };
 
 export default teams;
+
+const MENU_POLL_MS = 50;
+const MENU_TIMEOUT_MS = 1500;
+
+/**
+ * Open the row's "More options" menu and click the menu item whose
+ * accessible name matches `targetLabel`. Resolves silently if the row is
+ * gone, the menu doesn't appear, or the item isn't found — Teams' hover
+ * menu is fragile and we'd rather skip an action than crash the queue.
+ */
+async function runRowMenuAction(
+  doc: Document,
+  item: UnreadItem,
+  targetLabel: string,
+): Promise<void> {
+  const row = item.resolve(doc);
+  if (!row) return;
+
+  // Some Teams builds only render the "More options" button when the row is
+  // hovered/focused. Fire a couple of plausible activation events to coax
+  // it into the DOM, then look for it.
+  row.dispatchEvent(new Event('mouseenter', { bubbles: true }));
+  row.dispatchEvent(new Event('mouseover', { bubbles: true }));
+  row.dispatchEvent(new Event('focusin', { bubbles: true }));
+
+  const moreBtn = await waitFor<HTMLElement>(() => {
+    const btn = row.querySelector<HTMLElement>('button[aria-label*="More" i]');
+    return btn ?? null;
+  });
+  if (!moreBtn) return;
+  moreBtn.click();
+
+  const menuItem = await waitFor<HTMLElement>(() => {
+    const items = Array.from(doc.querySelectorAll<HTMLElement>('[role="menuitem"]'));
+    return (
+      items.find((mi) => {
+        const label = mi.getAttribute('aria-label') ?? mi.textContent ?? '';
+        return label.trim().toLowerCase() === targetLabel.toLowerCase();
+      }) ?? null
+    );
+  });
+  if (!menuItem) return;
+  menuItem.click();
+}
+
+async function waitFor<T>(finder: () => T | null): Promise<T | null> {
+  const deadline = Date.now() + MENU_TIMEOUT_MS;
+  // Try synchronously first — in tests the DOM is already populated.
+  let found = finder();
+  if (found) return found;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, MENU_POLL_MS));
+    found = finder();
+    if (found) return found;
+  }
+  return null;
+}

@@ -72,7 +72,11 @@ export function Overlay({ plugin, onTeardown }: OverlayProps) {
     right: queue.current?.actionRightLabel ?? labels.right,
   };
   const showCard = queue.state === 'ready';
-  const masked = queue.state === 'loading';
+  // Mask the card whenever the iframe contents would otherwise show a state
+  // we don't want the user to see — initial load AND every per-item openItem
+  // transition (which navigates the in-iframe app from "inbox list" into the
+  // selected message).
+  const masked = queue.state === 'loading' || queue.opening;
 
   return (
     <div className="root" style={accentStyle}>
