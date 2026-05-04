@@ -2,7 +2,7 @@
 
 Guide for AI coding agents working on **fs** — a TypeScript browser extension that brings swipe-card triage to unread items in any supported web app.
 
-The actual extension lives in `extension/`. The repo root holds the `electron-app/` prototype (kept for reference, not maintained) and `.todo/` for task tracking.
+The actual extension lives in `extension/`. The repo root holds `.todo/` for task tracking and `AGENTS.md` (this file).
 
 ## Project at a glance
 
@@ -198,7 +198,6 @@ Tasks must have testable acceptance criteria. If you can't describe how to verif
 - Reach into a plugin's DOM behavior from `core/` or `sidepanel/`. Use the contract.
 - Use `any` in committed code.
 - Use `console.log` for production diagnostics. `console.warn`/`console.error` are fine for actual problems.
-- Touch `electron-app/` — it's archived, not maintained.
 - Skip the regression check on Teams after any `core/` change. Teams must keep working.
 - Mutate `UnreadItem` after scrape. Items are immutable snapshots; per-item state lives in the queue.
 
