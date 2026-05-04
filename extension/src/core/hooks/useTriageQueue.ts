@@ -4,8 +4,12 @@ import { ItemDetachedError } from '../../plugins/types';
 
 export type QueueState = 'loading' | 'ready' | 'done' | 'error' | 'empty';
 
+/** Granular phase shown in the loading UI. */
+export type LoadingPhase = 'waiting-iframe' | 'waiting-app' | 'scraping' | 'opening';
+
 export interface TriageQueue {
   state: QueueState;
+  phase: LoadingPhase;
   items: readonly UnreadItem[];
   index: number;
   current: UnreadItem | null;
@@ -33,6 +37,7 @@ export interface QueueOptions {
 export function useTriageQueue(opts: QueueOptions): TriageQueue {
   const { plugin, contentDocument, iframeReady } = opts;
   const [state, setState] = useState<QueueState>('loading');
+  const [phase, setPhase] = useState<LoadingPhase>('waiting-iframe');
   const [items, setItems] = useState<UnreadItem[]>([]);
   const [index, setIndex] = useState(0);
   const [error, setError] = useState<Error | null>(null);
@@ -40,14 +45,19 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
   const inFlight = useRef(false);
 
   useEffect(() => {
-    if (!iframeReady || !contentDocument) return;
+    if (!iframeReady || !contentDocument) {
+      setPhase('waiting-iframe');
+      return;
+    }
     let cancelled = false;
     setState('loading');
+    setPhase('waiting-app');
     setError(null);
     (async () => {
       try {
         await plugin.waitForReady(contentDocument);
         if (cancelled) return;
+        setPhase('scraping');
         const scraped = plugin.scrapeUnread(contentDocument);
         if (cancelled) return;
         setItems(scraped);
@@ -55,8 +65,8 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
         if (scraped.length === 0) {
           setState('empty');
         } else {
+          setPhase('opening');
           setState('ready');
-          // Open the first item so the iframe shows it.
           try {
             await plugin.openItem?.(contentDocument, scraped[0]!);
           } catch (e) {
@@ -130,6 +140,7 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
 
   return {
     state,
+    phase,
     items,
     index,
     current: items[index] ?? null,

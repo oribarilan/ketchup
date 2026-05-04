@@ -4,6 +4,7 @@ import {
   useImperativeHandle,
   useMemo,
   useState,
+  type CSSProperties,
   type MutableRefObject,
 } from 'react';
 import { useSwipe } from '../hooks/useSwipe';
@@ -13,7 +14,7 @@ export interface CardHandle {
 }
 
 interface CardProps {
-  /** Stable id of the current item — used to trigger entrance + tilt refresh. */
+  /** Stable id of the current item — drives entrance + tilt refresh. */
   itemKey: string;
   masked: boolean;
   onSwipeLeft: () => void;
@@ -25,30 +26,30 @@ interface CardProps {
 /**
  * Swipeable card hosting the persistent iframe.
  *
- * The Card is mounted ONCE for the lifetime of the overlay. The iframe is a
- * stable child — never re-mounted across card transitions — so we don't reload
- * Teams/Outlook between cards.
- *
- * Per-item entrance animation + random tilt are driven by `itemKey` changes
- * via a CSS class toggle, not a React re-mount.
+ * The Card and its iframe are mounted ONCE for the overlay's lifetime so we
+ * never reload Teams/Outlook between cards. Per-item entrance + random tilt
+ * are driven by `itemKey` changes, composed into the same inline transform as
+ * the swipe gesture (no CSS !important fighting React).
  */
 export const Card = forwardRef<CardHandle, CardProps>(function Card(
   { itemKey, masked, onSwipeLeft, onSwipeRight, disabled, iframeRef },
   handleRef,
 ) {
   const restTilt = useMemo(() => seededTilt(itemKey), [itemKey]);
-  const [enterClass, setEnterClass] = useState('');
 
-  // Trigger an entrance animation each time itemKey changes.
+  // Entrance progress 0 → 1, plus an `active` flag so the transition stays
+  // applied through the animation window (otherwise the browser sees the
+  // transform change in the same frame as `transition: none` and snaps).
+  const [entranceProgress, setEntranceProgress] = useState(1);
+  const [entranceActive, setEntranceActive] = useState(false);
   useEffect(() => {
-    setEnterClass('card-enter');
-    const id = requestAnimationFrame(() =>
-      requestAnimationFrame(() => setEnterClass('card-enter card-enter-active')),
-    );
-    const clear = setTimeout(() => setEnterClass(''), 700);
+    setEntranceProgress(0);
+    setEntranceActive(true);
+    const raf = requestAnimationFrame(() => requestAnimationFrame(() => setEntranceProgress(1)));
+    const done = setTimeout(() => setEntranceActive(false), 700);
     return () => {
-      cancelAnimationFrame(id);
-      clearTimeout(clear);
+      cancelAnimationFrame(raf);
+      clearTimeout(done);
     };
   }, [itemKey]);
 
@@ -64,15 +65,32 @@ export const Card = forwardRef<CardHandle, CardProps>(function Card(
   const showLeftHint = swipe.dragX < -60;
   const showRightHint = swipe.dragX > 60;
 
+  // Compose entrance + swipe into a single transform / opacity.
+  // Entrance offset: card starts 8% above with scale 0.92 and opacity 0.
+  // Both fade to neutral at entranceProgress=1.
+  const entranceY = (1 - entranceProgress) * -8; // %
+  const entranceScale = 0.92 + 0.08 * entranceProgress;
+  const entranceOpacity = entranceProgress;
+
+  const composed: CSSProperties = {
+    ...swipe.style,
+    transform: `translate(calc(-50% + ${swipe.dragX}px), calc(-50% + ${entranceY}%)) rotate(${swipe.totalRot}deg) scale(${entranceScale})`,
+    // While swipe is animating (snap or fly), use the swipe transition.
+    // Otherwise during entrance, use a smoother spring.
+    transition:
+      swipe.transition !== 'none'
+        ? swipe.transition
+        : entranceActive
+          ? 'transform 0.55s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease'
+          : 'none',
+    opacity: swipe.opacity * entranceOpacity,
+  };
+
   return (
     <>
       <div className={`swipe-label swipe-label-left ${showLeftHint ? 'active' : ''}`}>✓ Read</div>
       <div className={`swipe-label swipe-label-right ${showRightHint ? 'active' : ''}`}>→ Keep</div>
-      <div
-        className={`card ${enterClass}`}
-        style={{ ...swipe.style, ['--rest-tilt' as string]: `${restTilt}deg` }}
-        {...swipe.bind}
-      >
+      <div className="card" style={composed} {...swipe.bind}>
         <iframe
           ref={(el) => {
             iframeRef.current = el;

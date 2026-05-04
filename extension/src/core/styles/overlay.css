@@ -107,22 +107,6 @@
   touch-action: none;
 }
 
-/* Entrance animation: scale-up + fade-in from a slight translate, applied via
-   class toggling on each new item (handled in Card.tsx). The initial frame
-   (.card-enter) sets the FROM state; .card-enter-active triggers the transition. */
-.card-enter {
-  opacity: 0;
-  transform: translate(-50%, -42%) rotate(var(--rest-tilt, 0deg)) scale(0.92) !important;
-  transition: none !important;
-}
-.card-enter.card-enter-active {
-  opacity: 1;
-  transform: translate(-50%, -50%) rotate(var(--rest-tilt, 0deg)) scale(1) !important;
-  transition:
-    transform 0.55s cubic-bezier(0.2, 0.8, 0.3, 1),
-    opacity 0.4s ease !important;
-}
-
 .top-bar {
   height: 38px;
   background: #1a1a1a;

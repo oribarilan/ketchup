@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 export interface SwipeOptions {
@@ -8,7 +7,7 @@ export interface SwipeOptions {
   threshold?: number;
   /** Disable interaction (e.g. while iframe loads). */
   disabled?: boolean;
-  /** Resting tilt for this card, in degrees. Composed with the drag rotation. */
+  /** Resting tilt for the card, in degrees. Composed with the drag rotation. */
   restTilt?: number;
 }
 
@@ -21,13 +20,21 @@ export interface SwipeBindings {
 
 export interface SwipeState {
   bind: SwipeBindings;
-  style: CSSProperties;
-  isAnimating: boolean;
-  /** Current horizontal drag offset in px. 0 when at rest. */
+  /** Decomposed values so Card can compose them with entrance state. */
   dragX: number;
-  /** Programmatic fling, used by the keyboard / button paths. */
+  totalRot: number;
+  opacity: number;
+  transition: string;
+  /** True while a snap or fly animation is in flight. */
+  isAnimating: boolean;
+  /** Programmatic fling, used by keyboard / button paths. */
   fling: (dir: 'left' | 'right') => void;
+  /** Convenience packed style for callers that don't need composition. */
+  style: React.CSSProperties;
 }
+
+const FLY_MS = 450;
+const SNAP_MS = 250;
 
 /**
  * Pointer state machine driving the card's translate/rotation/opacity.
@@ -66,7 +73,7 @@ export function useSwipe(opts: SwipeOptions): SwipeState {
       if (dir === 'left') onLeftRef.current();
       else onRightRef.current();
       reset();
-    }, 450);
+    }, FLY_MS);
   }
 
   const bind: SwipeBindings = {
@@ -90,14 +97,12 @@ export function useSwipe(opts: SwipeOptions): SwipeState {
       if (disabled) return;
       if (startX.current == null || pointerId.current !== e.pointerId) return;
       const dx = e.clientX - startX.current;
-      if (dx <= -threshold) {
-        fly('left');
-      } else if (dx >= threshold) {
-        fly('right');
-      } else {
+      if (dx <= -threshold) fly('left');
+      else if (dx >= threshold) fly('right');
+      else {
         setAnimating('snapping');
         setDragX(0);
-        setTimeout(() => setAnimating('idle'), 250);
+        setTimeout(() => setAnimating('idle'), SNAP_MS);
       }
       startX.current = null;
       pointerId.current = null;
@@ -106,31 +111,39 @@ export function useSwipe(opts: SwipeOptions): SwipeState {
       if (startX.current == null) return;
       setAnimating('snapping');
       setDragX(0);
-      setTimeout(() => setAnimating('idle'), 250);
+      setTimeout(() => setAnimating('idle'), SNAP_MS);
       startX.current = null;
       pointerId.current = null;
     },
   };
 
-  // Card rotation = rest tilt + drag-driven rotation.
-  // Flying off uses an exaggerated rotation in the fly direction.
+  // Card rotation = rest tilt + drag-driven rotation. Flying uses a strong tilt.
   const dragRot = animating === 'flying' ? flyDir * 24 : dragX / 18;
   const totalRot = restTilt + dragRot;
   const opacity = animating === 'flying' ? 0 : 1;
   let transition: string;
-  if (animating === 'idle') {
-    transition = 'none';
-  } else if (animating === 'flying') {
-    transition = 'transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease';
+  if (animating === 'flying') {
+    transition = `transform ${FLY_MS}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${FLY_MS - 100}ms ease`;
+  } else if (animating === 'snapping') {
+    transition = `transform ${SNAP_MS + 30}ms cubic-bezier(0.2, 0.9, 0.3, 1)`;
   } else {
-    transition = 'transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1)';
+    transition = 'none';
   }
 
-  const style: CSSProperties = {
+  const style: React.CSSProperties = {
     transform: `translate(calc(-50% + ${dragX}px), -50%) rotate(${totalRot}deg)`,
     transition,
     opacity,
   };
 
-  return { bind, style, isAnimating: animating !== 'idle', dragX, fling: fly };
+  return {
+    bind,
+    style,
+    dragX,
+    totalRot,
+    opacity,
+    transition,
+    isAnimating: animating !== 'idle',
+    fling: fly,
+  };
 }
