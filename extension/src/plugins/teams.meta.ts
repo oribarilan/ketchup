@@ -6,7 +6,7 @@ import type { PluginMetadata } from './types';
 const teamsMeta: PluginMetadata = {
   id: 'teams',
   label: 'Microsoft Teams',
-  iconPath: 'icons/icon128.png',
+  iconPath: 'icons/teams.svg',
   theme: { accent: '#6264a7', tileBg: '#6264a7' },
   matches: ['teams.cloud.microsoft', 'teams.microsoft.com'],
   iframeUrl: 'https://teams.cloud.microsoft/',

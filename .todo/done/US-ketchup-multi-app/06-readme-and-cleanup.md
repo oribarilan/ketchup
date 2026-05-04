@@ -2,7 +2,7 @@
 
 ## Goal
 
-Ship documentation. Verify the legacy artifacts are gone. Update the repo root README to reflect the rename from Nullify to fs.
+Ship documentation. Verify the legacy artifacts are gone. Update the repo root README to reflect the rename from Ketchup to ketchup.
 
 This is the "make the project legible to a new contributor" task.
 
@@ -12,7 +12,7 @@ This is the "make the project legible to a new contributor" task.
 
 - `extension/README.md` — full developer README. Sections:
 
-  1. **What fs is** — one paragraph: TypeScript browser extension, swipe-card triage for unread items, plugin architecture, currently supports Teams + Outlook.
+  1. **What ketchup is** — one paragraph: TypeScript browser extension, swipe-card triage for unread items, plugin architecture, currently supports Teams + Outlook.
 
   2. **Install dependencies**
      ```sh
@@ -74,8 +74,8 @@ This is the "make the project legible to a new contributor" task.
 
 ### Modify
 
-- Repo root `README.md` — rewrite to reflect `fs`:
-  - Remove all references to `Nullify`, `Zero`, and the old single-app framing.
+- Repo root `README.md` — rewrite to reflect `ketchup`:
+  - Remove all references to `Ketchup`, `Zero`, and the old single-app framing.
   - One-paragraph project description.
   - Link to `extension/README.md` for setup.
   - Keep any other top-level repo notes that aren't extension-specific.
@@ -102,7 +102,7 @@ If the working tree still contains any of these (from the v0.3.1 baseline), remo
 ## Implementation Notes
 
 - **Don't write a tutorial.** README is reference material for someone who already knows TypeScript and Chrome extensions. Skip "what is npm" preambles.
-- **Greppable check for stale strings:** `git grep -i "nullify\|zero" -- '*.md'` should return only intentional historical mentions (e.g., a "history" section noting the rename). `git grep -i "nullify\|zero" -- 'extension/src'` should return zero hits.
+- **Greppable check for stale strings:** `git grep -i "ketchup\|zero" -- '*.md'` should return only intentional historical mentions (e.g., a "history" section noting the rename). `git grep -i "ketchup\|zero" -- 'extension/src'` should return zero hits.
 - **Plugin template in README:** keep it short enough to copy-paste into a new file with minimal edits. The reader should be able to follow the "add a new plugin" steps and have a working stub in <10 minutes.
 - **Don't document deferred features.** The known-limitations section should mention them in passing but not over-explain. Future-tense language ("planned", "will support") invites scope creep — use present-tense factual statements ("v0.4.0 supports Teams and Outlook only").
 - **Markdown style:** Prettier formats markdown too (with `prose-wrap: preserve` or similar). Make sure README passes `npm run format -- --check`.
@@ -110,8 +110,8 @@ If the working tree still contains any of these (from the v0.3.1 baseline), remo
 ## Verification
 
 - [ ] `extension/README.md` exists and is well-formed (preview renders correctly in GitHub or VS Code).
-- [ ] Repo root `README.md` updated; no stale `Nullify` / `Zero` references in non-historical contexts.
-- [ ] `git grep -i "nullify\|zero" -- 'extension/src/**/*.ts' 'extension/src/**/*.tsx'` returns no hits.
+- [ ] Repo root `README.md` updated; no stale `Ketchup` / `Zero` references in non-historical contexts.
+- [ ] `git grep -i "ketchup\|zero" -- 'extension/src/**/*.ts' 'extension/src/**/*.tsx'` returns no hits.
 - [ ] Legacy root-level extension files are deleted from the working tree (still present in git history).
 - [ ] `npm run typecheck && npm run lint && npm run test && npm run build` all pass clean.
 - [ ] **Final manual smoke pass against the full DoD from main.md:**
@@ -120,7 +120,7 @@ If the working tree still contains any of these (from the v0.3.1 baseline), remo
   - Toolbar click on unsupported tab → sidepanel opens.
   - Sidepanel shows Teams + Outlook tiles, "Open" buttons work, status badges accurate.
   - Pre-commit hook fires and blocks lint errors.
-  - `manifest.json` `name` is `fs`, version `0.4.0`.
+  - `manifest.json` `name` is `ketchup`, version `0.4.0`.
 - [ ] Read the README out loud as if you'd never seen the project. Are the "add a new plugin" steps actually sufficient? If not, refine.
 
 ## Out of Scope

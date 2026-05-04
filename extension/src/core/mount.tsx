@@ -8,12 +8,12 @@ export interface TriageHandle {
   teardown(): void;
 }
 
-const HOST_ID = 'fs-host';
+const HOST_ID = 'ketchup-host';
 
 /**
  * Mounts the React overlay into a shadow root attached to the page's body.
  *
- * If the host SPA tears down `<div id="fs-host">` (workspace switch, list
+ * If the host SPA tears down `<div id="ketchup-host">` (workspace switch, list
  * virtualization), a MutationObserver re-mounts it.
  */
 export function mountOverlay(plugin: Plugin): TriageHandle {

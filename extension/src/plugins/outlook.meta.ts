@@ -9,7 +9,7 @@ import type { PluginMetadata } from './types';
 const outlookMeta: PluginMetadata = {
   id: 'outlook',
   label: 'Outlook',
-  iconPath: 'icons/outlook.png',
+  iconPath: 'icons/outlook.svg',
   theme: { accent: '#0078d4', tileBg: '#0078d4' },
   matches: [
     'outlook.cloud.microsoft',

@@ -2,11 +2,11 @@
 
 ## Context
 
-When fs encounters a calendar invite in Outlook, the Tinder-style swipe maps to **Accept** (right) and **Decline** (left). The third RSVP option, **Tentative**, was deferred from the original calendar-RSVP work — the binary swipe model doesn't have an obvious slot for a third action.
+When ketchup encounters a calendar invite in Outlook, the Tinder-style swipe maps to **Accept** (right) and **Decline** (left). The third RSVP option, **Tentative**, was deferred from the original calendar-RSVP work — the binary swipe model doesn't have an obvious slot for a third action.
 
 This task adds Tentative support. The user picks the UX they prefer in the brainstorming step.
 
-**Value delivered**: Outlook calendar invites can be triaged with full RSVP semantics (Accept / Decline / Tentative) without leaving the fs overlay.
+**Value delivered**: Outlook calendar invites can be triaged with full RSVP semantics (Accept / Decline / Tentative) without leaving the ketchup overlay.
 
 ## Related Files
 
@@ -32,7 +32,7 @@ Pick one in the brainstorming session before coding.
 
 ## Acceptance Criteria
 
-- [ ] User can mark an Outlook calendar invite as Tentative from inside the fs overlay (no falling back to native Outlook UI).
+- [ ] User can mark an Outlook calendar invite as Tentative from inside the ketchup overlay (no falling back to native Outlook UI).
 - [ ] The Tentative path uses the same in-iframe DOM driver as Accept/Decline (open RSVP menu → click "Tentative" menu item by aria-label `"Tentatively accept the meeting"` or text match).
 - [ ] Non-meeting items in Outlook are unaffected — keep showing Archive / Keep.
 - [ ] `tests/plugins/outlook.test.ts` covers the Tentative flow against a fixture.

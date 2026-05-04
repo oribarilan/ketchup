@@ -5,11 +5,11 @@ import teams from '../../src/plugins/teams';
 describe('mountOverlay', () => {
   it('creates host element with shadow root and removes on teardown', () => {
     const handle = mountOverlay(teams);
-    const host = document.getElementById('fs-host');
+    const host = document.getElementById('ketchup-host');
     expect(host).not.toBeNull();
     expect(host?.shadowRoot).not.toBeNull();
     handle.teardown();
-    expect(document.getElementById('fs-host')).toBeNull();
+    expect(document.getElementById('ketchup-host')).toBeNull();
   });
 
   it('teardown is idempotent', () => {
@@ -22,6 +22,6 @@ describe('mountOverlay', () => {
     const handle = mountOverlay(teams);
     handle.teardown();
     // No host element should remain.
-    expect(document.querySelectorAll('#fs-host')).toHaveLength(0);
+    expect(document.querySelectorAll('#ketchup-host')).toHaveLength(0);
   });
 });

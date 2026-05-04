@@ -25,7 +25,7 @@ This task establishes the regression net (build, lint, typecheck, test, smoke) b
 - `extension/package.json` `lint-staged` block — typecheck + eslint + prettier on staged TS/TSX.
 - `extension/src/entries/teams.content.ts` — wrap v0.3.1's `content.js` body verbatim, exported as a default IIFE-style activation. The runtime.onMessage `toggle` listener is preserved exactly. CSS string stays inline. **Zero refactoring** — this is a literal port so we can prove the new build pipeline produces a working extension.
 - `extension/src/background/index.ts` — port v0.3.1's `background.js` to TS. Hardcoded Teams URL pattern check for now.
-- `extension/src/sidepanel/index.html`, `src/sidepanel/main.tsx`, `src/sidepanel/App.tsx` — placeholder React app rendering "fs sidepanel — coming soon". Proves Vite multi-entry + React + sidepanel registration all work.
+- `extension/src/sidepanel/index.html`, `src/sidepanel/main.tsx`, `src/sidepanel/App.tsx` — placeholder React app rendering "ketchup sidepanel — coming soon". Proves Vite multi-entry + React + sidepanel registration all work.
 - `extension/public/rules.json` — copy v0.3.1's rules verbatim.
 - `extension/public/icons/` — copy v0.3.1's icons.
 - `extension/README.md` — minimal stub: install, dev, build, load unpacked. Full README comes in task 6.

@@ -97,7 +97,7 @@ export const Card = forwardRef<CardHandle, CardProps>(function Card(
             iframeRef.current = el;
           }}
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
-          title="fs-card"
+          title="ketchup-card"
         />
         <div className={`card-mask ${masked ? 'active' : ''}`} />
       </div>

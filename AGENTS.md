@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Guide for AI coding agents working on **fs** — a TypeScript browser extension that brings swipe-card triage to unread items in any supported web app.
+Guide for AI coding agents working on **ketchup** — a TypeScript browser extension that brings swipe-card triage to unread items in any supported web app.
 
 The actual extension lives in `extension/`. The repo root holds `.todo/` for task tracking and `AGENTS.md` (this file).
 
@@ -102,14 +102,14 @@ extension/src/
 
 - Overlay styles are scoped to the shadow root via `?raw` import + `<style>` injection. **No global CSS leakage** from the overlay.
 - Sidepanel styles are normal CSS in `src/sidepanel/styles.css`.
-- Use CSS custom properties for plugin-driven values (`--fs-accent`, `--fs-card-w`, `--fs-card-h`).
+- Use CSS custom properties for plugin-driven values (`--ketchup-accent`, `--ketchup-card-w`, `--ketchup-card-h`).
 
 ### Naming
 
 - Filenames: kebab-case for plain `.ts`, PascalCase for React components.
 - Type names: PascalCase. Interface names don't get an `I` prefix.
 - Plugin ids: lowercase single word (`teams`, `outlook`, `gmail`).
-- Internal code stays neutral — no `fs` / `nullify` strings sprinkled through logic.
+- Internal code stays neutral — no `ketchup` / `ketchup` strings sprinkled through logic.
 
 ## Plugin contract
 
@@ -157,11 +157,21 @@ See `extension/README.md` for the full step-by-step. Summary:
 1. `src/plugins/<id>.meta.ts` — Node-safe metadata.
 2. `src/plugins/<id>.ts` — DOM-bound behavior.
 3. `src/entries/<id>.content.ts` — copy from `teams.content.ts`, change two imports.
-4. `public/icons/<id>.png`.
+4. `public/icons/<id>.svg` — see **Plugin icon convention** below.
 5. Add to both arrays in `registry.ts` (metadata) and `registry-runtime.ts` (full plugin).
 6. Capture `tests/fixtures/<id>-unread.html` from the live DOM.
 7. Write `tests/plugins/<id>.test.ts` mirroring `teams.test.ts`.
 8. `npm run build` — manifest, rules, sidepanel tile auto-update.
+
+#### Plugin icon convention
+
+- **Format: SVG.** Drop the file at `public/icons/<id>.svg`. SVGs scale crisply at any DPR for the sidepanel tile (rendered ~28px) and the Vite static pipeline ships them as-is.
+- **Source the brand mark from [thesvg.org](https://thesvg.org).** Their URL pattern is `https://thesvg.org/icons/<slug>/default.svg` (e.g. `microsoft-teams`, `microsoft-outlook`, `gmail`, `slack`). Download with `curl -sL <url> -o extension/public/icons/<id>.svg` — don't hand-roll a brand mark, and don't redraw glyphs as `<text>` (text glyphs won't render reliably across machines without the matching font).
+- `iconPath` in `<id>.meta.ts` must be `'icons/<id>.svg'`.
+- The existing `teams.svg` and `outlook.svg` are sourced from thesvg.org and are the canonical examples of what to ship.
+- If thesvg.org doesn't have the brand, fall back to the vendor's own brand-assets page; only as a last resort hand-roll a simple branded tile (rounded rect + brand color + 1–2 white shapes, no text).
+- PNG is accepted only as a final fallback; if you ship one, it must be 128×128 with transparent background, and the meta must point at the `.png`.
+- Don't reuse the global action icons (`icon16.png`, `icon48.png`, `icon128.png`) — those are the toolbar icon, not per-plugin tiles.
 
 ### Modifying scrapers
 

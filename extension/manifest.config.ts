@@ -5,11 +5,11 @@ const allMatches = PLUGIN_METADATA.flatMap((p) => p.matches.map((h) => `https://
 
 export default defineManifest({
   manifest_version: 3,
-  name: 'fs',
+  name: 'Ketchup',
   version: '0.4.0',
   description: 'Swipe-card triage for unread items across web apps.',
   action: {
-    default_title: 'fs',
+    default_title: 'Ketchup',
     default_icon: {
       '16': 'icons/icon16.png',
       '48': 'icons/icon48.png',

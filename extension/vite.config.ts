@@ -9,7 +9,7 @@ export default defineConfig({
   plugins: [
     react(),
     {
-      name: 'fs-gen-rules',
+      name: 'ketchup-gen-rules',
       buildStart() {
         // Regenerate public/rules.json from the plugin registry before bundling.
         // Runs in Node via tsx so the registry's .meta.ts files are importable.

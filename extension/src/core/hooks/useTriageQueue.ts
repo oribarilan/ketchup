@@ -70,7 +70,7 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
         try {
           setTotalUnread(plugin.getTotalUnread?.(contentDocument) ?? null);
         } catch (e) {
-          console.warn('fs: getTotalUnread failed', e);
+          console.warn('ketchup: getTotalUnread failed', e);
         }
         if (scraped.length === 0) {
           setState('empty');
@@ -81,7 +81,7 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
             await plugin.openItem?.(contentDocument, scraped[0]!);
           } catch (e) {
             if (!(e instanceof ItemDetachedError)) {
-              console.warn('fs: openItem failed', e);
+              console.warn('ketchup: openItem failed', e);
             }
           }
         }
@@ -110,7 +110,7 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
       }
       return more;
     } catch (e) {
-      console.warn('fs: fetchMore failed', e);
+      console.warn('ketchup: fetchMore failed', e);
       return [];
     } finally {
       fetching.current = false;
@@ -145,7 +145,7 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
                 await plugin.openItem?.(contentDocument, more[0]);
               } catch (e) {
                 if (!(e instanceof ItemDetachedError)) {
-                  console.warn('fs: openItem failed', e);
+                  console.warn('ketchup: openItem failed', e);
                 }
               }
             }
@@ -163,7 +163,7 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
           await plugin.openItem?.(contentDocument, target);
         } catch (e) {
           if (!(e instanceof ItemDetachedError)) {
-            console.warn('fs: openItem failed', e);
+            console.warn('ketchup: openItem failed', e);
           }
         }
       }
@@ -187,7 +187,7 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
             await fn();
           } catch (e) {
             if (!(e instanceof ItemDetachedError)) {
-              console.warn('fs: actionLeft failed', e);
+              console.warn('ketchup: actionLeft failed', e);
             }
           }
         }
@@ -214,7 +214,7 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
             await fn();
           } catch (e) {
             if (!(e instanceof ItemDetachedError)) {
-              console.warn('fs: actionRight failed', e);
+              console.warn('ketchup: actionRight failed', e);
             }
           }
         }

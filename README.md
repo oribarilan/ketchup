@@ -1,4 +1,4 @@
-# fs
+# Ketchup
 
 Swipe-card triage for unread items across web apps. A browser extension that drops a Tinder-style overlay into Microsoft Teams, Outlook, and (soon) more — left-swipe to mark read, right-swipe to keep, keyboard shortcuts throughout.
 
@@ -22,18 +22,18 @@ Auth (passkeys, MFA, SSO, conditional access) must run in the user's real browse
 
 - **Plugin registry** drives everything: manifest, headers, sidepanel tiles, content-script registration.
 - **Triage runs in the app's own tab** via a React overlay mounted into shadow DOM.
-- **Sidepanel launcher** opens or focuses the right tab and toggles fs on. It cannot host the triage UI itself (cross-origin).
+- **Sidepanel launcher** opens or focuses the right tab and toggles ketchup on. It cannot host the triage UI itself (cross-origin).
 - **TypeScript strict, Vite + CRXJS, Vitest + happy-dom, ESLint flat config + Prettier, husky + lint-staged.**
 
 ## Repo layout
 
 ```
 .
-├── extension/        # The fs extension (TypeScript + React + Vite)
+├── extension/        # The ketchup extension (TypeScript + React + Vite)
 ├── .todo/            # Backlog and user stories
 └── AGENTS.md         # Guide for AI coding agents
 ```
 
 ## History
 
-Originally shipped as `Nullify` — a Chrome extension for Microsoft Teams only. Renamed to `fs` in v0.4.0 alongside the rewrite to TypeScript + React + a multi-app plugin architecture. An earlier Electron prototype existed but was removed once the extension architecture proved out.
+Originally shipped as `Ketchup` — a Chrome extension for Microsoft Teams only. Renamed to `ketchup` in v0.4.0 alongside the rewrite to TypeScript + React + a multi-app plugin architecture. An earlier Electron prototype existed but was removed once the extension architecture proved out.

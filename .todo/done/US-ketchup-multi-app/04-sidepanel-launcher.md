@@ -2,7 +2,7 @@
 
 ## Goal
 
-Build the **sidepanel launcher**: a React app that renders one tile per registered plugin, shows a tab-status badge, and on click opens (or focuses) a tab to that plugin's `iframeUrl` and toggles the fs overlay on. Wire the toolbar action so clicking on a non-supported tab opens the sidepanel instead of doing nothing.
+Build the **sidepanel launcher**: a React app that renders one tile per registered plugin, shows a tab-status badge, and on click opens (or focuses) a tab to that plugin's `iframeUrl` and toggles the ketchup overlay on. Wire the toolbar action so clicking on a non-supported tab opens the sidepanel instead of doing nothing.
 
 Introduce the typed message bus (`src/shared/messages.ts`) used across content / background / sidepanel.
 
@@ -47,8 +47,8 @@ After this task: there is a real cross-tab UI surface in v0.4.0. The architectur
   export function App() {
     const statuses = useTabStatus();
     return (
-      <main className="fs-launcher">
-        <header><h1>fs</h1></header>
+      <main className="ketchup-launcher">
+        <header><h1>Ketchup</h1></header>
         <ul className="tile-grid">
           {PLUGIN_METADATA.map(m => (
             <AppTile key={m.id} metadata={m} status={statuses[m.id]} />

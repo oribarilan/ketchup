@@ -108,7 +108,7 @@ If you find yourself wanting to write `if (plugin.id === 'outlook') { ... }` any
 - [ ] `dist/manifest.json` contains a content_scripts entry for Outlook with the correct matches AND a Teams entry, both generated from the registry.
 - [ ] `dist/rules.json` contains rules for both Teams and Outlook domains.
 - [ ] `tests/plugins/outlook.test.ts` passes.
-- [ ] **Manual smoke (Outlook):** sign into `outlook.office.com/mail/`, click toolbar icon → fs overlay opens with the list of unread emails. Each card shows subject + sender. Right-swipe advances. Left-swipe marks the email as read in Outlook (verify by checking the Outlook UI after closing the overlay — the read state should be reflected). Keyboard works.
+- [ ] **Manual smoke (Outlook):** sign into `outlook.office.com/mail/`, click toolbar icon → ketchup overlay opens with the list of unread emails. Each card shows subject + sender. Right-swipe advances. Left-swipe marks the email as read in Outlook (verify by checking the Outlook UI after closing the overlay — the read state should be reflected). Keyboard works.
 - [ ] **Manual smoke (Teams regression):** Teams overlay still works exactly as before. No regression.
 - [ ] **Manual smoke (sidepanel):** open sidepanel — shows Teams tile AND Outlook tile. Each tile's "Open" button works. Status badges update when Teams or Outlook tabs open/close.
 - [ ] `git diff src/core/ src/sidepanel/` shows **zero changes** in this commit. (If any change is needed, root-cause it back to a contract bug introduced in tasks 2–4 and fix there.)

@@ -15,9 +15,9 @@ describe('startTriage(plugin) baseline', () => {
     document.body.innerHTML = '';
   });
 
-  it('mounts a host element with id "fs-host"', () => {
+  it('mounts a host element with id "ketchup-host"', () => {
     const handle = startTriage(teams);
-    const host = document.getElementById('fs-host');
+    const host = document.getElementById('ketchup-host');
     expect(host).not.toBeNull();
     expect(host?.shadowRoot).not.toBeNull();
     handle.teardown();
@@ -25,9 +25,9 @@ describe('startTriage(plugin) baseline', () => {
 
   it('teardown removes the host element', () => {
     const handle = startTriage(teams);
-    expect(document.getElementById('fs-host')).not.toBeNull();
+    expect(document.getElementById('ketchup-host')).not.toBeNull();
     handle.teardown();
-    expect(document.getElementById('fs-host')).toBeNull();
+    expect(document.getElementById('ketchup-host')).toBeNull();
   });
 
   it('teardown is idempotent', () => {

@@ -19,7 +19,11 @@ export interface PluginMetadata {
   id: string;
   /** Human-readable label shown in the sidepanel. */
   label: string;
-  /** Path under `public/` for the tile/action icon, e.g. 'icons/teams.png'. */
+  /**
+   * Path under `public/` for the tile/action icon, e.g. 'icons/teams.svg'.
+   * **Prefer SVG** — they scale crisply for the sidepanel tile (any DPR) and
+   * the build pipeline ships them as-is. PNG is accepted but discouraged.
+   */
   iconPath: string;
   theme: PluginTheme;
   /** Host suffixes this plugin matches (no protocol, no path). */

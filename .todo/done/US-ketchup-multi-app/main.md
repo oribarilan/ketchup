@@ -1,10 +1,10 @@
-# US-fs-multi-app
+# US-ketchup-multi-app
 
 ## Goal
 
-Evolve the working `extension/` (Nullify v0.3.1, Tinder-style triage for MS Teams) into **fs**: a multi-app browser extension that triages unread items from any supported web app using the same swipe-card UX.
+Evolve the working `extension/` (Ketchup v0.3.1, Tinder-style triage for MS Teams) into **ketchup**: a multi-app browser extension that triages unread items from any supported web app using the same swipe-card UX.
 
-The extension is renamed `fs`. Teams keeps working unchanged from a UX standpoint. Outlook ships as the second app. A **sidepanel launcher** ships day 1 so the cross-tab story is real, not aspirational. The codebase moves to **TypeScript + React + Vite + ESLint/Prettier** so refactors stay safe and onboarding new apps is fast.
+The extension is renamed `ketchup`. Teams keeps working unchanged from a UX standpoint. Outlook ships as the second app. A **sidepanel launcher** ships day 1 so the cross-tab story is real, not aspirational. The codebase moves to **TypeScript + React + Vite + ESLint/Prettier** so refactors stay safe and onboarding new apps is fast.
 
 ## Background & Constraints
 
@@ -28,7 +28,7 @@ The extension is renamed `fs`. Teams keeps working unchanged from a UX standpoin
 - Tests: **Vitest + happy-dom** for plugin scrapers and React components.
 - Maintenance appetite: **High** — happy to maintain per-app DOM scrapers; prefer fast iteration over backend-API integrations.
 - Second app: **Outlook** (`https://outlook.office.com/mail/`).
-- Sidepanel v0.4.0: **launcher** — tiles for each supported app; click opens/focuses that app's tab and toggles fs on. Status text per tile (e.g. "signed in", "no tab open"). Architected so a future cross-tab unread queue is a small extension, not a rewrite.
+- Sidepanel v0.4.0: **launcher** — tiles for each supported app; click opens/focuses that app's tab and toggles ketchup on. Status text per tile (e.g. "signed in", "no tab open"). Architected so a future cross-tab unread queue is a small extension, not a rewrite.
 - Future apps deferred: Gmail, Slack, Discord, WhatsApp.
 
 ### Out of scope (explicitly deferred)
@@ -215,9 +215,9 @@ const allMatches = PLUGIN_METADATA.flatMap(p => p.matches.map(h => `https://${h}
 
 export default defineManifest({
   manifest_version: 3,
-  name: 'fs',
+  name: 'Ketchup',
   version: '0.4.0',
-  action: { default_title: 'fs', default_icon: 'icons/icon-128.png' },
+  action: { default_title: 'Ketchup', default_icon: 'icons/icon-128.png' },
   side_panel: { default_path: 'src/sidepanel/index.html' },
   background: { service_worker: 'src/background/index.ts', type: 'module' },
   content_scripts: PLUGIN_METADATA.map(p => ({
@@ -272,11 +272,11 @@ The plugin registry is statically imported into the service worker bundle by Vit
 - [ ] `npm run lint`, `npm run typecheck`, `npm run test` all pass with zero errors / zero warnings.
 - [ ] Loading `dist/` unpacked in Chrome and clicking the toolbar icon on a signed-in **Teams** tab opens the swipe-card overlay with unread chats — same UX as v0.3.1, no regressions. Keyboard, swipe, dark mode all work.
 - [ ] Loading `dist/` unpacked in Chrome and clicking the toolbar icon on a signed-in **Outlook** tab (`outlook.office.com/mail/`) opens the swipe-card overlay with unread emails. Left-swipe marks the email read in Outlook; right-swipe advances. Keyboard works.
-- [ ] Clicking the toolbar icon on a non-supported tab opens the **sidepanel launcher**. The launcher shows one tile per plugin in the registry, with a status badge and an Open button. Clicking Open focuses an existing tab (if any) or opens a new tab to `plugin.iframeUrl` and toggles fs on.
+- [ ] Clicking the toolbar icon on a non-supported tab opens the **sidepanel launcher**. The launcher shows one tile per plugin in the registry, with a status badge and an Open button. Clicking Open focuses an existing tab (if any) or opens a new tab to `plugin.iframeUrl` and toggles ketchup on.
 - [ ] Adding a new app requires creating only `src/plugins/<id>.ts` + `src/entries/<id>.content.ts` + adding the plugin to `src/plugins/registry.ts`. **Zero edits** under `src/core/` or `src/sidepanel/`. Manifest, rules, content-script registration, sidepanel tile all flow from the registry automatically.
 - [ ] Pre-commit hook runs lint + format + typecheck on staged files.
 - [ ] `extension/README.md` documents: how to install deps, dev mode (HMR), build, load unpacked, run tests, add a new plugin (with code template).
-- [ ] Repo root `README.md` updated to reflect `fs` (not `Nullify`/`Zero`).
+- [ ] Repo root `README.md` updated to reflect `ketchup` (not `Ketchup`/`Zero`).
 
 ## Task Priority
 
@@ -315,13 +315,13 @@ Each plugin's `headerStripDomains` translates to a `declarativeNetRequest` rule 
 Per the user's stated maintenance appetite, scraper breakage is an accepted cost. Each plugin's `scrapeUnread` returns `UnreadItem[]` — `[]` rather than throw if selectors don't match. Items hold a `resolve(doc)` re-resolver, NOT a live `HTMLElement`, so SPA re-renders and Outlook virtualization don't strand stale references — core re-resolves before each `openItem`/`markRead` call and shows the error state if `resolve()` returns `null`. Core shows the existing "No unread items found" state when the list is empty. Fixture tests in CI catch breakage before users see it.
 
 ### Mount resilience
-Teams and Outlook are SPAs that occasionally re-render large DOM subtrees (workspace switches, list virtualization). `src/core/mount.ts` registers a `MutationObserver` on `document.body` while the overlay is active; if the `<div id="fs-root">` host is removed by the host page, the observer re-mounts it. Teardown disconnects the observer.
+Teams and Outlook are SPAs that occasionally re-render large DOM subtrees (workspace switches, list virtualization). `src/core/mount.ts` registers a `MutationObserver` on `document.body` while the overlay is active; if the `<div id="ketchup-root">` host is removed by the host page, the observer re-mounts it. Teardown disconnects the observer.
 
 ### Type safety across the boundaries
 Messages between content / background / sidepanel are typed via a discriminated union in `src/shared/messages.ts`. `sendMessage` and `onMessage` helpers wrap `chrome.runtime.*` so the message shape is checked at the call site. No `any`.
 
 ### Naming
-- Repo: `nullify` (unchanged)
-- Extension display name: `fs`
-- Manifest `name`: `fs`
-- Internal code: keep neutral (`startTriage`, `Plugin`, `core`, `registry`) — no `fs`/`nullify`/`zero` strings sprinkled through logic
+- Repo: `ketchup` (unchanged)
+- Extension display name: `ketchup`
+- Manifest `name`: `ketchup`
+- Internal code: keep neutral (`startTriage`, `Plugin`, `core`, `registry`) — no `ketchup`/`ketchup`/`zero` strings sprinkled through logic

@@ -2,7 +2,7 @@
 
 ## Context
 
-When fs surfaces a backlog with thousands of unread items (Outlook user with 3,455 unread, Teams user with hundreds of channel mentions), swiping through one-by-one is impractical even with continuous fetching. The user typically wants a way to declare bankruptcy: "I'm not reading these — mark everything as read/archived".
+When ketchup surfaces a backlog with thousands of unread items (Outlook user with 3,455 unread, Teams user with hundreds of channel mentions), swiping through one-by-one is impractical even with continuous fetching. The user typically wants a way to declare bankruptcy: "I'm not reading these — mark everything as read/archived".
 
 This task adds a bulk "mark all" action that's only offered when the backlog is large enough to be intimidating, so it doesn't clutter the UI for users with normal inboxes.
 
@@ -31,7 +31,7 @@ This task adds a bulk "mark all" action that's only offered when the backlog is 
 - Teams: there's a "Mark all as read" option in the context menu of the Chat node. Right-click the Chat rail and click it.
 
 **UX placement options** (pick one in the brainstorming session before coding):
-1. **Subtle CTA in the progress badge area** — small "Mark all 3,455 as read" link below the inbox-total subtext. Clicked → confirmation prompt → fires the bulk action → fs closes (nothing left to triage).
+1. **Subtle CTA in the progress badge area** — small "Mark all 3,455 as read" link below the inbox-total subtext. Clicked → confirmation prompt → fires the bulk action → ketchup closes (nothing left to triage).
 2. **Top-bar overflow menu** — three-dot menu in the card's top bar with "Mark all as read", "Snooze for now", etc.
 3. **Done-state CTA** — only after the user has triaged some items, offer "Mark remaining N as read and finish" on the done screen.
 
@@ -44,7 +44,7 @@ Confirmation step is not optional — bulk read is destructive and must require 
 - [ ] Teams implements it via the chat-tree "Mark all as read" context-menu action.
 - [ ] UI offers the bulk action only when the threshold is met (or always behind a discoverable control — pick one).
 - [ ] User must confirm before the action fires (a second click; not a browser `confirm()` modal).
-- [ ] After the action succeeds, fs closes (or shows an "All caught up" state) — no stale cards left in the queue.
+- [ ] After the action succeeds, ketchup closes (or shows an "All caught up" state) — no stale cards left in the queue.
 - [ ] If the action partially succeeds (e.g. only the visible batch was actually marked), the UI reflects the realistic count and surfaces a follow-up.
 - [ ] Tests cover: action wired correctly per plugin (mocked DOM), threshold gating in `<Overlay>`, confirmation step requires the second click.
 

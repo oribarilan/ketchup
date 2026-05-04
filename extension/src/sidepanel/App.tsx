@@ -5,9 +5,9 @@ import { useTabStatus } from './hooks/useTabStatus';
 export function App() {
   const { statuses, loading } = useTabStatus();
   return (
-    <main className="fs-launcher">
+    <main className="ketchup-launcher">
       <header>
-        <h1>fs</h1>
+        <h1>Ketchup</h1>
         <p className="hint">Pick an app to triage</p>
       </header>
       <ul className="tile-grid">

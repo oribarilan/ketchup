@@ -31,7 +31,7 @@ export function Controls({
     <>
       {hint && <div className="action-hint">{hint}</div>}
       <div className="top-bar">
-        <div className="logo">✦ fs</div>
+        <div className="logo">✦ ketchup</div>
         <div className="cnt">
           <b>{Math.min(index + 1, total)}</b> / {total}
         </div>

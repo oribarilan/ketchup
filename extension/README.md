@@ -1,4 +1,4 @@
-# fs
+# Ketchup
 
 A TypeScript browser extension that brings swipe-card triage to unread items in any supported web app. v0.4.0 ships with **Microsoft Teams** and **Outlook** plugins, plus a sidepanel launcher for cross-tab access.
 
@@ -81,7 +81,7 @@ A new app requires creating three files and editing one. Manifest, headers, side
    const meta: PluginMetadata = {
      id: 'gmail',
      label: 'Gmail',
-     iconPath: 'icons/gmail.png',
+     iconPath: 'icons/gmail.svg',
      theme: { accent: '#ea4335', tileBg: '#ea4335' },
      matches: ['mail.google.com'],
      iframeUrl: 'https://mail.google.com/mail/u/0/',
@@ -154,7 +154,7 @@ A new app requires creating three files and editing one. Manifest, headers, side
    export const PLUGINS = [teams, outlook, gmail] as const;
    ```
 
-5. **Drop a 128×128 icon** at `public/icons/<id>.png`.
+5. **Drop a plugin icon** at `public/icons/<id>.svg`. **SVG is the convention** — it scales crisply at any DPR for the sidepanel tile (rendered ~28px) and ships through the Vite static pipeline unchanged. **Source the brand mark from [thesvg.org](https://thesvg.org)**: `curl -sL https://thesvg.org/icons/<slug>/default.svg -o extension/public/icons/<id>.svg` (slugs look like `microsoft-teams`, `microsoft-outlook`, `gmail`, `slack`). Don't hand-roll a brand mark — the existing `teams.svg` and `outlook.svg` come from thesvg.org. PNG is accepted only as a fallback; if you must ship one, use 128×128 with transparent background.
 
 6. **Capture a fixture** of the unread list at `tests/fixtures/<id>-unread.html` (DevTools → "Copy outerHTML" on the list root, trim).
 
@@ -174,7 +174,7 @@ See [`src/plugins/types.ts`](src/plugins/types.ts) for full JSDoc.
 | `id`                  | yes      | Stable lookup id used in messages and registry                         |
 | `label`               | yes      | Display name in the sidepanel                                          |
 | `iconPath`            | yes      | Path under `public/` for the tile/action icon                          |
-| `theme.accent`        | yes      | Overlay accent color (`--fs-accent`)                                   |
+| `theme.accent`        | yes      | Overlay accent color (`--ketchup-accent`)                              |
 | `theme.tileBg`        | no       | Tile background color in the sidepanel                                 |
 | `matches`             | yes      | Host suffixes (no protocol or path)                                    |
 | `iframeUrl`           | yes      | URL the in-card iframe points at; must stay same-origin once signed in |

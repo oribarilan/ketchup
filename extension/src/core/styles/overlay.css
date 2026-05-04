@@ -7,9 +7,9 @@
 }
 
 :host {
-  --fs-accent: #6264a7;
-  --fs-card-w: 420px;
-  --fs-card-h: 780px;
+  --ketchup-accent: #6264a7;
+  --ketchup-card-w: 420px;
+  --ketchup-card-h: 780px;
   --btn-bg: #fff;
   --btn-hover-read: #f0fdf4;
   --btn-hover-keep: #eff6ff;
@@ -88,8 +88,8 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  width: var(--fs-card-w);
-  height: var(--fs-card-h);
+  width: var(--ketchup-card-w);
+  height: var(--ketchup-card-h);
   max-width: 95vw;
   max-height: 92vh;
   border-radius: 24px;
@@ -188,7 +188,7 @@
      plus visual breathing room. Falls back to 24px from viewport bottom on
      small screens. */
   position: absolute;
-  bottom: max(calc(50% - var(--fs-card-h) / 2 - 110px), 24px);
+  bottom: max(calc(50% - var(--ketchup-card-h) / 2 - 110px), 24px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -208,7 +208,7 @@
      room. Falls back to 12px from viewport top on small screens. */
   position: absolute;
   left: 50%;
-  top: max(calc(50% - var(--fs-card-h) / 2 - 80px), 12px);
+  top: max(calc(50% - var(--ketchup-card-h) / 2 - 80px), 12px);
   transform: translateX(-50%);
   z-index: 6;
   font-size: 11px;
@@ -220,7 +220,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(8px);
   white-space: nowrap;
-  max-width: min(95vw, calc(var(--fs-card-w) + 80px));
+  max-width: min(95vw, calc(var(--ketchup-card-w) + 80px));
   overflow: hidden;
   text-overflow: ellipsis;
   animation: fadeUp 0.4s ease 0.2s both;
@@ -231,7 +231,7 @@
 .progress-badge {
   position: absolute;
   left: 50%;
-  top: max(calc(50% - var(--fs-card-h) / 2 - 130px), 8px);
+  top: max(calc(50% - var(--ketchup-card-h) / 2 - 130px), 8px);
   transform: translateX(-50%);
   z-index: 6;
   display: flex;
@@ -265,7 +265,7 @@
 }
 .progress-badge-fill {
   height: 100%;
-  background: var(--fs-accent);
+  background: var(--ketchup-accent);
   border-radius: 999px;
   transition: width 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
@@ -437,7 +437,7 @@
   width: 28px;
   height: 28px;
   border: 2.5px solid rgba(255, 255, 255, 0.08);
-  border-top-color: var(--fs-accent);
+  border-top-color: var(--ketchup-accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -453,8 +453,8 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: var(--fs-card-w);
-  height: var(--fs-card-h);
+  width: var(--ketchup-card-w);
+  height: var(--ketchup-card-h);
   max-width: 95vw;
   max-height: 92vh;
   border-radius: 24px;

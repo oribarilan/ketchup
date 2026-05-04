@@ -28,7 +28,7 @@ export function useTabStatus(): { statuses: StatusMap; loading: boolean } {
         setStatuses(map);
         setLoading(false);
       } catch (e) {
-        console.error('fs: useTabStatus refresh failed', e);
+        console.error('ketchup: useTabStatus refresh failed', e);
         if (!cancelled) setLoading(false);
       }
     }

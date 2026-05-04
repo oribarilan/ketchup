@@ -14,12 +14,12 @@ After this task: `src/core/` is idiomatic React, the swipe state machine is test
   ```ts
   export function mountOverlay(plugin: Plugin): { teardown(): void };
   ```
-  Creates a `<div id="fs-root">` host on `document.body`, attaches `mode: 'open'` shadow root, injects scoped stylesheet, calls `ReactDOM.createRoot(shadowRoot).render(<Overlay plugin={plugin} onTeardown={...} />)`. Registers a `MutationObserver` on `document.body` — if the host element is removed by the host SPA's re-render, re-mount it. Teardown unmounts root, removes host element, disconnects observer, releases keyboard listeners.
+  Creates a `<div id="ketchup-root">` host on `document.body`, attaches `mode: 'open'` shadow root, injects scoped stylesheet, calls `ReactDOM.createRoot(shadowRoot).render(<Overlay plugin={plugin} onTeardown={...} />)`. Registers a `MutationObserver` on `document.body` — if the host element is removed by the host SPA's re-render, re-mount it. Teardown unmounts root, removes host element, disconnects observer, releases keyboard listeners.
 
 - `extension/src/core/components/Overlay.tsx` — top-level component. Owns:
   - `useTriageQueue(plugin)` — fetches unread items via `plugin.scrapeUnread`, manages current index, exposes `current`, `advance`, `markCurrentRead`, `state` ('loading' | 'ready' | 'done' | 'error').
   - Renders `<LoadingState>`, `<ErrorState>`, `<DoneState>`, or `<Card>` based on state.
-  - Theme via CSS custom property `--fs-accent` set from `plugin.theme.accent`.
+  - Theme via CSS custom property `--ketchup-accent` set from `plugin.theme.accent`.
 
 - `extension/src/core/components/Card.tsx` — single swipeable card containing the iframe. Props: `item: UnreadItem`, `iframeUrl: string`, `labels: { left: string; right: string }`, `onSwipeLeft()`, `onSwipeRight()`. Uses `useSwipe` hook for pointer + animation. Renders the iframe and the two action buttons. Header shows `item.name` and optional `item.preview`.
 
@@ -91,7 +91,7 @@ After this task: `src/core/` is idiomatic React, the swipe state machine is test
   - Error state shows if iframe fails to load (test by temporarily breaking `iframeUrl`).
   - Done state shows after last item.
   - Dark mode still works.
-- [ ] Inspect the page DOM: there is exactly one `<div id="fs-root">` with a shadow root. No styles leak into the host page.
+- [ ] Inspect the page DOM: there is exactly one `<div id="ketchup-root">` with a shadow root. No styles leak into the host page.
 - [ ] `src/core/legacy.ts` is gone.
 
 ## Out of Scope

@@ -54,7 +54,7 @@ export async function sendOrInject(tabId: number, _pluginId: string): Promise<vo
   try {
     await sendTabMessage<'TOGGLE'>(tabId, { type: 'TOGGLE' });
   } catch (e) {
-    console.error('fs: failed to activate after reload', e);
+    console.error('ketchup: failed to activate after reload', e);
   }
 }
 
@@ -85,7 +85,7 @@ export async function handleActionClick(tab: chrome.tabs.Tab): Promise<void> {
   try {
     await chrome.sidePanel.open({ tabId: tab.id });
   } catch (e) {
-    console.error('fs: failed to open side panel', e);
+    console.error('ketchup: failed to open side panel', e);
   }
 }
 

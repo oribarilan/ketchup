@@ -61,9 +61,9 @@ export function Overlay({ plugin, onTeardown }: OverlayProps) {
 
   const cardSize = plugin.cardSize ?? { width: 420, height: 780 };
   const accentStyle = {
-    ['--fs-accent' as string]: plugin.theme.accent,
-    ['--fs-card-w' as string]: `${cardSize.width}px`,
-    ['--fs-card-h' as string]: `${cardSize.height}px`,
+    ['--ketchup-accent' as string]: plugin.theme.accent,
+    ['--ketchup-card-w' as string]: `${cardSize.width}px`,
+    ['--ketchup-card-h' as string]: `${cardSize.height}px`,
   } as React.CSSProperties;
 
   // Per-item label overrides take precedence over plugin defaults.
@@ -170,7 +170,7 @@ interface ProgressBadgeProps {
 function ProgressBadge({ index, total, totalUnread }: ProgressBadgeProps) {
   const current = Math.min(index + 1, total);
   const pct = total === 0 ? 0 : Math.min(index / total, 1);
-  // "Loaded" makes it explicit that N is what fs preloaded, not the total.
+  // "Loaded" makes it explicit that N is what ketchup preloaded, not the total.
   const loadedSuffix = totalUnread != null && totalUnread > total ? ' loaded' : '';
   return (
     <div className="progress-badge" role="status" aria-live="polite">

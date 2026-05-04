@@ -23,7 +23,7 @@ export function AppTile({ metadata, status, loading }: AppTileProps) {
     try {
       await sendMessage<'OPEN_AND_TOGGLE'>({ type: 'OPEN_AND_TOGGLE', pluginId: metadata.id });
     } catch (e) {
-      console.error('fs: OPEN_AND_TOGGLE failed', e);
+      console.error('ketchup: OPEN_AND_TOGGLE failed', e);
     } finally {
       setPending(false);
     }

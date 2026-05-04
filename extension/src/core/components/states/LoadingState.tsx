@@ -8,7 +8,7 @@ interface LoadingStateProps {
 export function LoadingState({ label, status, progress }: LoadingStateProps) {
   return (
     <div className="progress-loader">
-      <div className="progress-logo">✦ fs</div>
+      <div className="progress-logo">✦ ketchup</div>
       <div className="spinner" />
       <div className="progress-status">{status ?? `Connecting to ${label}…`}</div>
       <div className="progress-bar" aria-hidden>

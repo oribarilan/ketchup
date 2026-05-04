@@ -95,7 +95,7 @@ const teams: Plugin = {
   // reliably equal the number of unread items in the DOM (it appears to
   // exclude muted/non-priority chats in ways we can't see). Surfacing it as
   // "total" misled users, so we don't expose it. The progress counter just
-  // shows "X of N" where N is what fs actually has to triage — the same set
+  // shows "X of N" where N is what ketchup actually has to triage — the same set
   // Teams' "Unread" filter would surface. Outlook keeps `getTotalUnread`
   // because its folder badge IS faithful.
 };

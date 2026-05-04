@@ -4,7 +4,7 @@ import { App } from './App';
 import './styles.css';
 
 const container = document.getElementById('root');
-if (!container) throw new Error('fs sidepanel: #root not found');
+if (!container) throw new Error('ketchup sidepanel: #root not found');
 
 createRoot(container).render(
   <React.StrictMode>
