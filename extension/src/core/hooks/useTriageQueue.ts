@@ -14,8 +14,8 @@ export interface TriageQueue {
   index: number;
   current: UnreadItem | null;
   error: Error | null;
-  /** Plugin-reported total unread count if available (e.g. Outlook folder badge). */
-  totalUnread: number | null;
+  /** Plugin-reported total backlog size if available (e.g. Outlook folder badge). */
+  inboxTotal: number | null;
   /**
    * True while `plugin.openItem` is in flight (initial load + every advance /
    * markRead). The overlay uses this to mask the iframe so the user never sees
@@ -51,7 +51,7 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
   const [items, setItems] = useState<UnreadItem[]>([]);
   const [index, setIndex] = useState(0);
   const [error, setError] = useState<Error | null>(null);
-  const [totalUnread, setTotalUnread] = useState<number | null>(null);
+  const [inboxTotal, setInboxTotal] = useState<number | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [opening, setOpening] = useState(false);
   const inFlight = useRef(false);
@@ -94,9 +94,9 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
         setItems(scraped);
         setIndex(0);
         try {
-          setTotalUnread(plugin.getTotalUnread?.(contentDocument) ?? null);
+          setInboxTotal(plugin.getInboxTotal?.(contentDocument) ?? null);
         } catch (e) {
-          console.warn('ketchup: getTotalUnread failed', e);
+          console.warn('ketchup: getInboxTotal failed', e);
         }
         if (scraped.length === 0) {
           setState('empty');
@@ -240,7 +240,7 @@ export function useTriageQueue(opts: QueueOptions): TriageQueue {
     index,
     current: items[index] ?? null,
     error,
-    totalUnread,
+    inboxTotal,
     opening,
     markCurrentRead,
     advance,

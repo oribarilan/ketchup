@@ -95,7 +95,8 @@ export function Overlay({ plugin, onTeardown }: OverlayProps) {
           <ProgressBadge
             index={queue.index}
             total={queue.items.length}
-            totalUnread={queue.totalUnread}
+            inboxTotal={queue.inboxTotal}
+            tag={queue.current?.tag}
           />
           <Controls
             labels={itemLabels}
@@ -106,6 +107,7 @@ export function Overlay({ plugin, onTeardown }: OverlayProps) {
             onLeft={() => fling('left')}
             onRight={() => fling('right')}
             onClose={onTeardown}
+            onReload={queue.reload}
           />
         </>
       )}
@@ -122,7 +124,9 @@ export function Overlay({ plugin, onTeardown }: OverlayProps) {
       {queue.state === 'empty' && (
         <ErrorState error={new Error('No unread items found.')} onClose={onTeardown} />
       )}
-      {queue.state === 'done' && <DoneState count={queue.items.length} onClose={onTeardown} />}
+      {queue.state === 'done' && (
+        <DoneState count={queue.items.length} onClose={onTeardown} onReload={queue.reload} />
+      )}
       {(queue.state === 'loading' || !iframe.ready) && (
         <LoadingState
           label={plugin.label}
@@ -155,7 +159,8 @@ function progressFor(iframeReady: boolean, phase: string): number {
 interface ProgressBadgeProps {
   index: number;
   total: number;
-  totalUnread: number | null;
+  inboxTotal: number | null;
+  tag?: string | undefined;
 }
 
 /**
@@ -163,30 +168,34 @@ interface ProgressBadgeProps {
  *
  * Two truths shown:
  *  - Position in the loaded batch ("Card X of N").
- *  - Real backlog size when the plugin reports it ("M unread in inbox" — for
- *    Outlook this comes from the folder badge; Teams doesn't expose a reliable
- *    total so this line is omitted).
+ *  - Real backlog size when the plugin reports it ("M in inbox" — for
+ *    Outlook this comes from the folder badge; Teams doesn't expose a
+ *    reliable total so this line is omitted).
  *
  * The progress bar reflects position WITHIN the loaded batch (i.e. progress
  * through this triage sitting), not progress through the whole inbox — that
- * would be misleadingly slow for thousands of unread items.
+ * would be misleadingly slow for thousands of items.
+ *
+ * `tag` (optional) renders a small chip alongside the counter so the user
+ * sees per-item context like "Read" before swiping.
  */
-function ProgressBadge({ index, total, totalUnread }: ProgressBadgeProps) {
+function ProgressBadge({ index, total, inboxTotal, tag }: ProgressBadgeProps) {
   const current = Math.min(index + 1, total);
   const pct = total === 0 ? 0 : Math.min(index / total, 1);
   // "Loaded" makes it explicit that N is what ketchup preloaded, not the total.
-  const loadedSuffix = totalUnread != null && totalUnread > total ? ' loaded' : '';
+  const loadedSuffix = inboxTotal != null && inboxTotal > total ? ' loaded' : '';
   return (
     <div className="progress-badge" role="status" aria-live="polite">
       <span className="progress-badge-text">
         <b>{current}</b> of {total}
         {loadedSuffix}
+        {tag && <span className="progress-badge-tag">{tag}</span>}
       </span>
       <div className="progress-badge-track" aria-hidden>
         <div className="progress-badge-fill" style={{ width: `${pct * 100}%` }} />
       </div>
-      {totalUnread != null && totalUnread > total && (
-        <span className="progress-badge-sub">{totalUnread.toLocaleString()} unread in inbox</span>
+      {inboxTotal != null && inboxTotal > total && (
+        <span className="progress-badge-sub">{inboxTotal.toLocaleString()} in inbox</span>
       )}
     </div>
   );

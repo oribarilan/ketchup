@@ -61,12 +61,10 @@ const outlook: Plugin = {
   async waitForReady(doc: Document): Promise<void> {
     const deadline = Date.now() + 15_000;
     while (Date.now() < deadline) {
-      if (
-        doc.querySelector('div[role="option"][data-convid]') ||
-        doc.querySelector('div[role="option"][aria-label^="Unread" i]')
-      ) {
-        return;
-      }
+      // Inbox-zero mode: any conversation row is enough — we no longer
+      // require an unread row to be present (some inboxes have only read
+      // mail in view).
+      if (doc.querySelector('div[role="option"][data-convid]')) return;
       await new Promise((r) => setTimeout(r, 200));
     }
   },
@@ -112,14 +110,16 @@ const outlook: Plugin = {
   },
 
   /**
-   * Outlook exposes the inbox unread count in the folder element's `title`
-   * attribute, e.g. `"Inbox - 4,176 items (3,455 unread)"`. Parse it.
+   * Outlook exposes the inbox total in the folder element's `title`
+   * attribute, e.g. `"Inbox - 4,176 items (3,455 unread)"`. We surface the
+   * total items count (not the unread count) — for the inbox-zero workflow
+   * the user wants to see how big the backlog is overall.
    */
-  getTotalUnread(doc: Document): number | null {
-    const candidates = doc.querySelectorAll<HTMLElement>('[title*="unread" i]');
+  getInboxTotal(doc: Document): number | null {
+    const candidates = doc.querySelectorAll<HTMLElement>('[title*="items" i]');
     for (const el of candidates) {
       const t = el.getAttribute('title') ?? '';
-      const m = /\(([\d,]+)\s+unread\)/i.exec(t);
+      const m = /([\d,]+)\s+items\b/i.exec(t);
       if (m && m[1]) {
         const n = Number(m[1].replace(/,/g, ''));
         if (Number.isFinite(n)) return n;
@@ -144,7 +144,10 @@ async function collectFrom(doc: Document, state: DocState, target: number): Prom
   }
 
   function snapshotVisible() {
-    const rows = doc.querySelectorAll<HTMLElement>('div[role="option"][aria-label^="Unread" i]');
+    // Inbox-zero mode: snapshot every row, not just unread. Each row is
+    // tagged with read-state so per-item action overrides can keep "Keep
+    // unread" semantics for unread rows and "Keep" (no-op) for read rows.
+    const rows = doc.querySelectorAll<HTMLElement>('div[role="option"][data-convid]');
     rows.forEach((row) => {
       const id = row.getAttribute('data-convid');
       if (!id || state.seen.has(id) || newSnapshots.has(id)) return;
@@ -180,29 +183,53 @@ async function collectFrom(doc: Document, state: DocState, target: number): Prom
 }
 
 function buildItem(id: string, snap: OutlookSnap): UnreadItem {
+  // Read state is encoded in the aria-label: unread rows start with "Unread ".
+  const isUnread = /^unread\b/i.test(snap.label);
+  const isMeeting = /\bmeeting\b/i.test(snap.label);
+  const kind = isMeeting ? 'meeting' : isUnread ? 'email' : 'email-read';
+
   const item: UnreadItem = {
     id,
     name: parseName(snap.label),
-    kind: /\bmeeting\b/i.test(snap.label) ? 'meeting' : 'email',
+    kind,
     resolve(d: Document): HTMLElement | null {
       return d.querySelector<HTMLElement>(`div[role="option"][data-convid="${cssEscape(id)}"]`);
     },
   };
-  if (item.kind === 'meeting') {
+  if (kind === 'meeting') {
     item.actionLeftLabel = '✕ Decline';
     item.actionRightLabel = '✓ Accept';
     item.actionSkipLabel = 'Tentative';
     item.actionHint = 'Invite will be archived after Accept/Decline. Skip leaves it Tentative.';
+    // Same selection-convergence requirement as the email flow: the global
+    // RSVP button binds to whatever Outlook currently considers selected, so
+    // we must wait until OUR row is the active selection before clicking it.
+    // Otherwise a streak of meeting RSVPs will RSVP the previously-selected
+    // (auto-selected after the prior archive) meeting.
     item.actionLeftFn = async (d) => {
-      const el = await ensureRow(d, item, snap.scrollPos);
-      await rsvp(d, el, 'decline');
+      await ensureRowSelected(d, item, snap.scrollPos);
+      await rsvp(d, 'decline');
       await archive(d);
     };
     item.actionRightFn = async (d) => {
-      const el = await ensureRow(d, item, snap.scrollPos);
-      await rsvp(d, el, 'accept');
+      await ensureRowSelected(d, item, snap.scrollPos);
+      await rsvp(d, 'accept');
       await archive(d);
     };
+  } else if (kind === 'email-read') {
+    // Already-read email. Inbox-zero workflow: surface it for triage but
+    // don't change its read-state on Keep — the user already read it. Left
+    // swipe still archives (same selection-convergence flow).
+    item.actionRightLabel = '→ Keep';
+    item.tag = 'Read';
+    item.actionLeftFn = async (d) => {
+      await ensureRowSelected(d, item, snap.scrollPos);
+      const btn = await waitForToolbarButton(d, /^archive$/i, /\barchive\b/i);
+      if (btn) btn.click();
+      else dispatchShortcut(d, 'e', 'KeyE');
+    };
+    // Pure no-op — the queue will advance.
+    item.actionRightFn = async () => {};
   } else {
     // Inbox email.
     //
@@ -258,12 +285,10 @@ async function ensureRow(doc: Document, item: UnreadItem, scrollPos: number): Pr
   return el;
 }
 
-async function rsvp(
-  doc: Document,
-  rowEl: HTMLElement,
-  choice: 'accept' | 'decline',
-): Promise<void> {
-  rowEl.click();
+async function rsvp(doc: Document, choice: 'accept' | 'decline'): Promise<void> {
+  // Caller (`ensureRowSelected`) has already made our row the active
+  // selection and let the command bar settle, so the RSVP button we find
+  // here is bound to OUR meeting.
   const targetAria = choice === 'accept' ? /^accept the meeting$/i : /^decline the meeting$/i;
 
   const rsvpBtn = await waitForElement<HTMLButtonElement>(() => {
@@ -450,6 +475,14 @@ const NOISE = [
 ];
 
 function parseName(label: string): string {
+  // Read-row format: "From <sender>, Subject: <subject>, Received: <when>".
+  // Parse it cleanly into "<sender> — <subject>" so the card stays scannable.
+  const read = /^From\s+(.+?),\s*Subject:\s*(.+?),\s*Received:/i.exec(label);
+  if (read && read[1] && read[2]) {
+    const merged = `${read[1].trim()} — ${read[2].trim()}`;
+    return merged.length > 140 ? merged.slice(0, 137) + '…' : merged;
+  }
+
   let s = label.replace(/^Unread\s+/i, '');
   for (const re of NOISE) s = s.replace(re, '');
   const m = /\s\d{1,2}:\d{2}(?:\s|$)/.exec(s);

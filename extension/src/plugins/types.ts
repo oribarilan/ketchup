@@ -73,12 +73,12 @@ export interface PluginBehavior {
    */
   actionRight?(doc: Document, item: UnreadItem): Promise<void>;
   /**
-   * Optional: total unread count across the whole inbox/app, not just the
-   * scraped batch. Most apps virtualize their lists, so `scrapeUnread` only
-   * sees what's currently rendered. This returns the "real" total when the
-   * app exposes it (e.g. Outlook's folder badge), or `null` when unknown.
+   * Optional: total backlog size for the app (whatever count is meaningful
+   * to surface alongside "X of N loaded"). For Outlook this is total items
+   * in the inbox folder; for chat-style apps it can stay unimplemented.
+   * Returns null when the count can't be determined.
    */
-  getTotalUnread?(doc: Document): number | null;
+  getInboxTotal?(doc: Document): number | null;
   /**
    * Optional: fetch the next batch of unread items beyond what `scrapeUnread`
    * has already returned. Plugins backed by virtualized lists implement this
@@ -116,8 +116,15 @@ export interface UnreadItem {
   preview?: string;
   /** Re-resolves the live element by id. Returns null if no longer in the DOM. */
   resolve(doc: Document): HTMLElement | null;
-  /** Optional kind tag (e.g. 'email' | 'meeting'). Plugins may use any string. */
+  /** Optional kind tag (e.g. 'email' | 'email-read' | 'meeting'). Plugins may use any string. */
   kind?: string;
+  /**
+   * Optional short tag rendered as a chip in the overlay so the user can
+   * tell at a glance what kind of item this is (e.g. "Read", "Meeting").
+   * For unread emails this stays undefined — the absence of a tag is the
+   * "unread email" signal.
+   */
+  tag?: string;
   /** Per-item button label override for the left action. */
   actionLeftLabel?: string;
   /** Per-item button label override for the right action. */

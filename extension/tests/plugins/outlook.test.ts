@@ -23,10 +23,95 @@ describe('outlook plugin', () => {
     expect(outlook.headerStripDomains).toContain('outlook.cloud.microsoft');
   });
 
-  it('scrapes only rows with aria-label starting with "Unread"', async () => {
+  it('scrapes every row in the inbox (read + unread), not just unread', async () => {
     const items = await Promise.resolve(outlook.scrapeUnread(loadFixture()));
-    expect(items).toHaveLength(3);
-    expect(items[0]?.name).toMatch(/Yair Tsarfaty/);
+    // Fixture has 3 unread rows + 1 read row (Bob Brown).
+    expect(items).toHaveLength(4);
+    const names = items.map((i) => i.name);
+    expect(names.some((n) => n.includes('Bob Brown'))).toBe(true);
+  });
+
+  it('tags read rows with kind="email-read" and unread rows with their kind', async () => {
+    const items = await Promise.resolve(outlook.scrapeUnread(loadFixture()));
+    const bob = items.find((i) => i.name.includes('Bob Brown'))!;
+    expect(bob.kind).toBe('email-read');
+    const yair = items.find((i) => i.name.includes('Yair Tsarfaty'))!;
+    expect(yair.kind).toBe('meeting');
+    const inbar = items.find((i) => i.name.includes('Inbar Rotem'))!;
+    expect(inbar.kind).toBe('email');
+  });
+
+  it('parses read-row aria-labels into "Sender — Subject" form', async () => {
+    const items = await Promise.resolve(outlook.scrapeUnread(loadFixture()));
+    const bob = items.find((i) => i.kind === 'email-read')!;
+    expect(bob.name).toMatch(/Bob Brown/);
+    expect(bob.name).toMatch(/Lunch tomorrow/);
+    // No raw "From ", "Subject:", "Received:" leaking through.
+    expect(bob.name).not.toMatch(/^From /);
+    expect(bob.name).not.toMatch(/Subject:/);
+    expect(bob.name).not.toMatch(/Received:/);
+  });
+
+  it('read email actionRightFn is a pure no-op (does not mark unread)', async () => {
+    const doc = loadFixture();
+    const items = await Promise.resolve(outlook.scrapeUnread(doc));
+    const bob = items.find((i) => i.kind === 'email-read')!;
+    const { archiveBtn, unreadBtn } = attachToolbar(doc);
+
+    let rowClicked = 0;
+    let archiveClicked = 0;
+    let unreadClicked = 0;
+    bob.resolve(doc)!.addEventListener('click', () => rowClicked++);
+    archiveBtn.addEventListener('click', () => archiveClicked++);
+    unreadBtn.addEventListener('click', () => unreadClicked++);
+
+    expect(bob.actionRightFn).toBeDefined();
+    await bob.actionRightFn!(doc);
+
+    expect(rowClicked).toBe(0);
+    expect(archiveClicked).toBe(0);
+    expect(unreadClicked).toBe(0);
+  });
+
+  it('read email actionLeftFn still archives (same flow as unread)', async () => {
+    const doc = loadFixture();
+    const items = await Promise.resolve(outlook.scrapeUnread(doc));
+    const bob = items.find((i) => i.kind === 'email-read')!;
+    const row = bob.resolve(doc)!;
+    const { archiveBtn } = attachToolbar(doc);
+
+    row.addEventListener('click', () => {
+      setTimeout(() => row.setAttribute('aria-selected', 'true'), 50);
+    });
+    let archiveClicked = 0;
+    archiveBtn.addEventListener('click', () => archiveClicked++);
+
+    await bob.actionLeftFn!(doc);
+    expect(archiveClicked).toBe(1);
+  });
+
+  it('read emails carry actionRightLabel "Keep" and a "Read" tag, unread emails do not', async () => {
+    const items = await Promise.resolve(outlook.scrapeUnread(loadFixture()));
+    const bob = items.find((i) => i.kind === 'email-read')!;
+    expect(bob.actionRightLabel).toMatch(/keep/i);
+    expect(bob.actionRightLabel).not.toMatch(/unread/i);
+    expect(bob.tag).toMatch(/read/i);
+
+    const inbar = items.find((i) => i.name.includes('Inbar Rotem'))!;
+    expect(inbar.tag).toBeUndefined();
+  });
+
+  it('getInboxTotal parses "4,176 items" from the folder title attribute', () => {
+    const doc = new DOMParser().parseFromString(
+      `<html><body><div title="Inbox - 4,176 items (3,455 unread)"></div></body></html>`,
+      'text/html',
+    );
+    expect(outlook.getInboxTotal!(doc)).toBe(4176);
+  });
+
+  it('getInboxTotal returns null when the title is missing', () => {
+    const doc = new DOMParser().parseFromString('<html><body/></html>', 'text/html');
+    expect(outlook.getInboxTotal!(doc)).toBeNull();
   });
 
   it('strips noise prefixes (Meeting, Marked as ... by Copilot, Collapsed) from name', async () => {
@@ -97,7 +182,7 @@ describe('outlook plugin', () => {
   it('per-item actionLeftFn (email) selects the row then clicks the Archive toolbar button', async () => {
     const doc = loadFixture();
     const items = await Promise.resolve(outlook.scrapeUnread(doc));
-    const email = items.find((i) => i.kind !== 'meeting')!;
+    const email = items.find((i) => i.kind === 'email')!;
     const { archiveBtn, unreadBtn } = attachToolbar(doc);
 
     let rowClicked = 0;
@@ -117,7 +202,7 @@ describe('outlook plugin', () => {
   it('per-item actionRightFn (email) selects the row then clicks the Mark-as-unread toolbar button', async () => {
     const doc = loadFixture();
     const items = await Promise.resolve(outlook.scrapeUnread(doc));
-    const email = items.find((i) => i.kind !== 'meeting')!;
+    const email = items.find((i) => i.kind === 'email')!;
     const { archiveBtn, unreadBtn } = attachToolbar(doc);
 
     let rowClicked = 0;
@@ -138,7 +223,7 @@ describe('outlook plugin', () => {
   it('actionLeftFn falls back to a keyboard shortcut when no Archive button is visible', async () => {
     const doc = loadFixture();
     const items = await Promise.resolve(outlook.scrapeUnread(doc));
-    const email = items.find((i) => i.kind !== 'meeting')!;
+    const email = items.find((i) => i.kind === 'email')!;
     // No toolbar attached. Plugin should fall back to dispatching a keydown
     // somewhere in the doc tree (capture-phase listener catches any target).
     let archiveKey = 0;
@@ -157,7 +242,7 @@ describe('outlook plugin', () => {
   it('actionLeftFn (email) throws ItemDetachedError when row cannot be resolved', async () => {
     const doc = loadFixture();
     const items = await Promise.resolve(outlook.scrapeUnread(doc));
-    const email = items.find((i) => i.kind !== 'meeting');
+    const email = items.find((i) => i.kind === 'email');
     expect(email).toBeDefined();
     email!.resolve(doc)!.remove();
     await expect(email!.actionLeftFn!(doc)).rejects.toBeInstanceOf(ItemDetachedError);
@@ -166,7 +251,7 @@ describe('outlook plugin', () => {
   it('actionLeftFn waits for a delayed Archive toolbar button before failing back to keyboard', async () => {
     const doc = loadFixture();
     const items = await Promise.resolve(outlook.scrapeUnread(doc));
-    const email = items.find((i) => i.kind !== 'meeting')!;
+    const email = items.find((i) => i.kind === 'email')!;
 
     let archiveClicked = 0;
     let archiveKey = 0;
@@ -198,7 +283,7 @@ describe('outlook plugin', () => {
   it('actionLeftFn does not re-click an already-selected row (avoid Outlook deselect toggle)', async () => {
     const doc = loadFixture();
     const items = await Promise.resolve(outlook.scrapeUnread(doc));
-    const email = items.find((i) => i.kind !== 'meeting')!;
+    const email = items.find((i) => i.kind === 'email')!;
     const row = email.resolve(doc)!;
     // Mark the row as already selected (e.g. openItem just clicked it).
     row.setAttribute('aria-selected', 'true');
@@ -219,7 +304,7 @@ describe('outlook plugin', () => {
   it('actionRightFn (email) throws ItemDetachedError when row cannot be resolved', async () => {
     const doc = loadFixture();
     const items = await Promise.resolve(outlook.scrapeUnread(doc));
-    const email = items.find((i) => i.kind !== 'meeting');
+    const email = items.find((i) => i.kind === 'email');
     email!.resolve(doc)!.remove();
     await expect(email!.actionRightFn!(doc)).rejects.toBeInstanceOf(ItemDetachedError);
   });
@@ -231,7 +316,7 @@ describe('outlook plugin', () => {
   it('actionLeftFn does not click Archive until our row is aria-selected (stale-toolbar guard)', async () => {
     const doc = loadFixture();
     const items = await Promise.resolve(outlook.scrapeUnread(doc));
-    const email = items.find((i) => i.kind !== 'meeting')!;
+    const email = items.find((i) => i.kind === 'email')!;
     const row = email.resolve(doc)!;
 
     // Pre-existing (stale) Archive button — represents the post-first-archive
@@ -260,7 +345,7 @@ describe('outlook plugin', () => {
   it('openItem waits for the clicked row to become aria-selected before resolving', async () => {
     const doc = loadFixture();
     const items = await Promise.resolve(outlook.scrapeUnread(doc));
-    const email = items.find((i) => i.kind !== 'meeting')!;
+    const email = items.find((i) => i.kind === 'email')!;
     const row = email.resolve(doc)!;
 
     row.addEventListener('click', () => {
@@ -273,6 +358,130 @@ describe('outlook plugin', () => {
     expect(row.getAttribute('aria-selected')).toBe('true');
     // Should have waited at least the ~200ms it took for selection to flip.
     expect(elapsed).toBeGreaterThanOrEqual(180);
+  });
+
+  // --- Meeting (RSVP) action surface ---
+  //
+  // The meeting flow has the same selection-convergence requirement as the
+  // email flow: the "RSVP" button is global to the reading pane, so clicking
+  // it before Outlook has bound it to our row hits the previously-selected
+  // meeting (or worse, archives nothing and triggers a misleading no-op).
+  function attachRsvpSurface(
+    doc: Document,
+    choice: 'accept' | 'decline',
+  ): {
+    rsvpBtn: HTMLButtonElement;
+    archiveBtn: HTMLButtonElement;
+    menuItem: HTMLElement;
+  } {
+    const reading = doc.createElement('div');
+    const rsvpBtn = doc.createElement('button');
+    rsvpBtn.textContent = 'RSVP';
+    Object.defineProperty(rsvpBtn, 'offsetParent', { configurable: true, get: () => doc.body });
+    reading.appendChild(rsvpBtn);
+    doc.body.appendChild(reading);
+
+    // Menu items appear after RSVP click.
+    const menu = doc.createElement('div');
+    menu.setAttribute('role', 'menu');
+    const acceptItem = doc.createElement('div');
+    acceptItem.setAttribute('role', 'menuitem');
+    acceptItem.setAttribute('aria-label', 'Accept the meeting');
+    const declineItem = doc.createElement('div');
+    declineItem.setAttribute('role', 'menuitem');
+    declineItem.setAttribute('aria-label', 'Decline the meeting');
+    menu.appendChild(acceptItem);
+    menu.appendChild(declineItem);
+    // Hidden until RSVP click reveals.
+    menu.style.display = 'none';
+    doc.body.appendChild(menu);
+    rsvpBtn.addEventListener('click', () => {
+      menu.style.display = '';
+    });
+
+    const { archiveBtn } = attachToolbar(doc);
+
+    return { rsvpBtn, archiveBtn, menuItem: choice === 'accept' ? acceptItem : declineItem };
+  }
+
+  it('meeting actionLeftFn (Decline) waits for aria-selected before clicking RSVP', async () => {
+    const doc = loadFixture();
+    const items = await Promise.resolve(outlook.scrapeUnread(doc));
+    const meeting = items.find((i) => i.kind === 'meeting');
+    expect(meeting).toBeDefined();
+    const row = meeting!.resolve(doc)!;
+
+    const { rsvpBtn, menuItem } = attachRsvpSurface(doc, 'decline');
+
+    let rsvpClicked = 0;
+    let rsvpClickedWhileSelected = false;
+    rsvpBtn.addEventListener('click', () => {
+      rsvpClicked++;
+      rsvpClickedWhileSelected = row.getAttribute('aria-selected') === 'true';
+    });
+
+    let menuClicked = 0;
+    menuItem.addEventListener('click', () => menuClicked++);
+
+    // Outlook flips aria-selected ~250ms after our row click.
+    row.addEventListener('click', () => {
+      setTimeout(() => row.setAttribute('aria-selected', 'true'), 250);
+    });
+
+    await meeting!.actionLeftFn!(doc);
+
+    expect(rsvpClicked).toBe(1);
+    expect(rsvpClickedWhileSelected).toBe(true);
+    expect(menuClicked).toBe(1);
+  });
+
+  it('meeting actionRightFn (Accept) waits for aria-selected before clicking RSVP', async () => {
+    const doc = loadFixture();
+    const items = await Promise.resolve(outlook.scrapeUnread(doc));
+    const meeting = items.find((i) => i.kind === 'meeting')!;
+    const row = meeting.resolve(doc)!;
+
+    const { rsvpBtn, menuItem } = attachRsvpSurface(doc, 'accept');
+
+    let rsvpClicked = 0;
+    let rsvpClickedWhileSelected = false;
+    rsvpBtn.addEventListener('click', () => {
+      rsvpClicked++;
+      rsvpClickedWhileSelected = row.getAttribute('aria-selected') === 'true';
+    });
+
+    let menuClicked = 0;
+    menuItem.addEventListener('click', () => menuClicked++);
+
+    row.addEventListener('click', () => {
+      setTimeout(() => row.setAttribute('aria-selected', 'true'), 250);
+    });
+
+    await meeting.actionRightFn!(doc);
+
+    expect(rsvpClicked).toBe(1);
+    expect(rsvpClickedWhileSelected).toBe(true);
+    expect(menuClicked).toBe(1);
+  });
+
+  it('meeting actionLeftFn does not re-click an already-selected row (avoid Outlook deselect toggle)', async () => {
+    const doc = loadFixture();
+    const items = await Promise.resolve(outlook.scrapeUnread(doc));
+    const meeting = items.find((i) => i.kind === 'meeting')!;
+    const row = meeting.resolve(doc)!;
+    row.setAttribute('aria-selected', 'true');
+
+    const { rsvpBtn } = attachRsvpSurface(doc, 'decline');
+
+    let rowClicked = 0;
+    let rsvpClicked = 0;
+    row.addEventListener('click', () => rowClicked++);
+    rsvpBtn.addEventListener('click', () => rsvpClicked++);
+
+    await meeting.actionLeftFn!(doc);
+
+    expect(rowClicked).toBe(0);
+    expect(rsvpClicked).toBe(1);
   });
 
   it('waitForReady resolves when an Unread row exists', async () => {

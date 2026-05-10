@@ -7,6 +7,7 @@ interface ControlsProps {
   onLeft: () => void;
   onRight: () => void;
   onClose: () => void;
+  onReload: () => void;
 }
 
 function modKey(): string {
@@ -25,6 +26,7 @@ export function Controls({
   onLeft,
   onRight,
   onClose,
+  onReload,
 }: ControlsProps) {
   const mod = modKey();
   return (
@@ -35,6 +37,14 @@ export function Controls({
         <div className="cnt">
           <b>{Math.min(index + 1, total)}</b> / {total}
         </div>
+        <button
+          className="close-btn"
+          onClick={onReload}
+          aria-label="Restart from top"
+          title="Restart from top (re-scrape unread)"
+        >
+          ↻
+        </button>
         <button className="close-btn" onClick={onClose} aria-label="Close">
           ✕
         </button>
