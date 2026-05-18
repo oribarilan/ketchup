@@ -1,3 +1,5 @@
+import { KetchupIcon } from '../KetchupIcon';
+
 interface LoadingStateProps {
   label: string;
   status?: string;
@@ -8,7 +10,10 @@ interface LoadingStateProps {
 export function LoadingState({ label, status, progress }: LoadingStateProps) {
   return (
     <div className="progress-loader">
-      <div className="progress-logo">✦ ketchup</div>
+      <div className="progress-logo">
+        <KetchupIcon size={32} color="#fff" />
+        ketchup
+      </div>
       <div className="spinner" />
       <div className="progress-status">{status ?? `Connecting to ${label}…`}</div>
       <div className="progress-bar" aria-hidden>

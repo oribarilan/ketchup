@@ -53,14 +53,14 @@ Replace `✦ ketchup` text with a larger bottle icon. Spinner border-top color a
 
 ## Definition of Done
 
-- [ ] `public/icons/ketchup.svg` exists with a clean ketchup-bottle silhouette that reads at 16px
-- [ ] Toolbar PNGs (`icon16.png`, `icon48.png`, `icon128.png`) are generated from the bottle SVG in brand red on transparent bg
-- [ ] Sidepanel uses the warm color palette (light + dark mode) via updated CSS custom properties
-- [ ] Sidepanel header shows bottle icon + "Ketchup" wordmark (not plain text)
-- [ ] Overlay top-bar shows small bottle icon + "ketchup" text instead of `✦ ketchup`
-- [ ] Loading screen shows larger bottle icon instead of `✦ ketchup`
-- [ ] `--ketchup-accent` fallback in `overlay.css` is `#D94030` instead of `#6264a7`
-- [ ] `npm run typecheck && npm run lint && npm run test && npm run build` all pass
+- [x] `public/icons/ketchup.svg` exists with a clean ketchup-bottle silhouette that reads at 16px
+- [x] Toolbar PNGs (`icon16.png`, `icon48.png`, `icon128.png`) are generated from the bottle SVG in brand red on transparent bg
+- [x] Sidepanel uses the warm color palette (light + dark mode) via updated CSS custom properties
+- [x] Sidepanel header shows bottle icon + "Ketchup" wordmark (not plain text)
+- [x] Overlay top-bar shows small bottle icon + "ketchup" text instead of `✦ ketchup`
+- [x] Loading screen shows larger bottle icon instead of `✦ ketchup`
+- [x] `--ketchup-accent` fallback in `overlay.css` is `#D94030` instead of `#6264a7`
+- [x] `npm run typecheck && npm run lint && npm run test && npm run build` all pass
 - [ ] Extension loads in Chrome with the new toolbar icon visible
 - [ ] Sidepanel renders correctly in both light and dark mode
 

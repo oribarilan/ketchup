@@ -7,7 +7,7 @@
 }
 
 :host {
-  --ketchup-accent: #6264a7;
+  --ketchup-accent: #d94030;
   --ketchup-card-w: 420px;
   --ketchup-card-h: 780px;
   --btn-bg: #fff;
@@ -126,6 +126,9 @@
   font-size: 13px;
   font-weight: 700;
   letter-spacing: -0.3px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 .top-bar .cnt {
   color: rgba(255, 255, 255, 0.4);
@@ -440,6 +443,9 @@
   font-weight: 800;
   color: #fff;
   letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 .progress-status {
   font-size: 14px;

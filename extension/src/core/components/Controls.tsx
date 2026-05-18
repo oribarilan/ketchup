@@ -1,3 +1,5 @@
+import { KetchupIcon } from './KetchupIcon';
+
 interface ControlsProps {
   labels: { left: string; right: string };
   index: number;
@@ -33,7 +35,10 @@ export function Controls({
     <>
       {hint && <div className="action-hint">{hint}</div>}
       <div className="top-bar">
-        <div className="logo">✦ ketchup</div>
+        <div className="logo">
+          <KetchupIcon size={14} color="rgba(255,255,255,0.85)" />
+          ketchup
+        </div>
         <div className="cnt">
           <b>{Math.min(index + 1, total)}</b> / {total}
         </div>

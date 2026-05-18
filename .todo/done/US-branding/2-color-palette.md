@@ -17,13 +17,13 @@ The sidepanel and overlay use a neutral gray palette with no brand color. This t
 
 ## Acceptance Criteria
 
-- [ ] Sidepanel light mode uses warm cream background `#FFF8F0`, card bg `#FFF3EB`, warm muted gray `#8B7E74`
-- [ ] Sidepanel dark mode uses warm dark `#1E1A18`, card bg `#2A2420`, warm muted `#9C8E82`
-- [ ] Sidepanel buttons use brand red `#D94030` (light) / `#E04A3A` (dark) with white text
-- [ ] Overlay `--ketchup-accent` fallback in `:host` changes from `#6264a7` to `#D94030`
-- [ ] Light and dark mode both look intentional (no clashing warm/cool tones)
-- [ ] Plugin-specific accent overrides (Teams purple, Outlook blue) still work at runtime
-- [ ] `npm run build` succeeds
+- [x] Sidepanel light mode uses warm cream background `#FFF8F0`, card bg `#FFF3EB`, warm muted gray `#8B7E74`
+- [x] Sidepanel dark mode uses warm dark `#1E1A18`, card bg `#2A2420`, warm muted `#9C8E82`
+- [x] Sidepanel buttons use brand red `#D94030` (light) / `#E04A3A` (dark) with white text
+- [x] Overlay `--ketchup-accent` fallback in `:host` changes from `#6264a7` to `#D94030`
+- [x] Light and dark mode both look intentional (no clashing warm/cool tones)
+- [x] Plugin-specific accent overrides (Teams purple, Outlook blue) still work at runtime
+- [x] `npm run build` succeeds
 
 ## Verification
 

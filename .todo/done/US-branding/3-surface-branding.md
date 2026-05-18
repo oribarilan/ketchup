@@ -21,13 +21,13 @@ With the SVG icon created (task 1) and the color palette updated (task 2), this 
 
 ## Acceptance Criteria
 
-- [ ] `KetchupIcon.tsx` exists in `src/core/components/` with `size` and `color` props, renders the bottle SVG inline
-- [ ] Sidepanel header: bottle icon (~24px) + "Ketchup" wordmark, replacing the plain `<h1>`
-- [ ] Overlay top-bar: small bottle icon (~16px) + "ketchup" text, replacing `✦ ketchup`
-- [ ] Loading screen: larger bottle icon (~28px), replacing `✦ ketchup`
-- [ ] All surfaces render correctly in both light and dark mode
-- [ ] `npm run typecheck && npm run lint && npm run test && npm run build` all pass
-- [ ] No new imports from `core/` into `plugins/` (KetchupIcon stays in core)
+- [x] `KetchupIcon.tsx` exists in `src/core/components/` with `size` and `color` props, renders the bottle SVG inline
+- [x] Sidepanel header: bottle icon (~24px) + "Ketchup" wordmark, replacing the plain `<h1>`
+- [x] Overlay top-bar: small bottle icon (~16px) + "ketchup" text, replacing `✦ ketchup`
+- [x] Loading screen: larger bottle icon (~28px), replacing `✦ ketchup`
+- [x] All surfaces render correctly in both light and dark mode
+- [x] `npm run typecheck && npm run lint && npm run test && npm run build` all pass
+- [x] No new imports from `core/` into `plugins/` (KetchupIcon stays in core)
 
 ## Verification
 

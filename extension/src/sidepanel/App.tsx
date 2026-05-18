@@ -1,3 +1,4 @@
+import { KetchupIcon } from '../core/components/KetchupIcon';
 import { PLUGIN_METADATA } from '../plugins/registry';
 import { AppTile } from './components/AppTile';
 import { useTabStatus } from './hooks/useTabStatus';
@@ -7,7 +8,10 @@ export function App() {
   return (
     <main className="ketchup-launcher">
       <header>
-        <h1>Ketchup</h1>
+        <h1>
+          <KetchupIcon size={22} color="#D94030" />
+          Ketchup
+        </h1>
         <p className="hint">Pick an app to triage</p>
       </header>
       <ul className="tile-grid">

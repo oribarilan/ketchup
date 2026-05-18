@@ -20,13 +20,13 @@ Ketchup has no logo -- just a `✦` Unicode glyph. This task creates the brand m
 
 ## Acceptance Criteria
 
-- [ ] `extension/public/icons/ketchup.svg` exists with a clean ketchup-bottle silhouette
-- [ ] The SVG is a simple shape (few paths, no gradients, no text elements, no effects)
-- [ ] The bottle shape is recognizable at 16px -- test by viewing at actual size
-- [ ] Brand red `#D94030` fill on transparent background
-- [ ] `icon16.png`, `icon48.png`, `icon128.png` are regenerated from the SVG at their respective sizes
-- [ ] `manifest.config.ts` icon references still work after the file replacement
-- [ ] `npm run build` succeeds and the icons appear in `dist/`
+- [x] `extension/public/icons/ketchup.svg` exists with a clean ketchup-bottle silhouette
+- [x] The SVG is a simple shape (few paths, no gradients, no text elements, no effects)
+- [x] The bottle shape is recognizable at 16px -- test by viewing at actual size
+- [x] Brand red `#D94030` fill on transparent background
+- [x] `icon16.png`, `icon48.png`, `icon128.png` are regenerated from the SVG at their respective sizes
+- [x] `manifest.config.ts` icon references still work after the file replacement
+- [x] `npm run build` succeeds and the icons appear in `dist/`
 
 ## Verification
 
